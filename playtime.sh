@@ -1,4 +1,52 @@
+
 # playtime
+
+
+
+
+
+
+#-------------------------------------------------------------------------------
+# benzimidaole figure - panel A - chromosome 1
+
+library(ggplot2)
+
+# import fst data
+xqtl_bz_fst <- read.table("XQTL_BZ.merged.fst",header=F)
+
+xqtl_bz_fst_chr1 <- xqtl_bz_fst[xqtl_bz_fst$V1=="hcontortus_chr1_Celeg_TT_arrow_pilon",]
+
+# calculate a genome wide significance cutoff
+genomewide_sig <- mean(xqtl_bz_fst_chr1$V13)+(3*sd(xqtl_bz_fst_chr1$V13))
+
+xqtl_bz_fst_chr1_peaks <- xqtl_bz_fst_chr1[(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD),]
+
+# get predicted peak windows
+
+peaks <- read.table("peak.windows.bed",header=T)
+
+peak_subset <- xqtl_bz_fst_chr1[(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD),]
+
+# make the plot
+plot_a <- ggplot(xqtl_bz_fst_chr1)+
+     geom_hline(yintercept=genomewide_sig, linetype="dashed",col="black")+
+     geom_vline(xintercept=7029790,linetype="dashed",col="grey")+
+     geom_point(aes(V2,V13,group=V1), col="cornflowerblue",size=0.5)+
+     geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[1]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[1]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
+     geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[2]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[2]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
+     geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[3]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[3]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
+     ylim(0,0.1)+xlim(0,50e6)+
+     theme_bw()+
+     labs(title="A",x="Chromosome position (5 kb window)", y="Pre vs Post treatment Fst")+
+     facet_grid(.~V1)
+
+
+
+
+#-------------------------------------------------------------------------------
+
+# benzimidaole figure - panel B - beta tubulin isotype 1 data
+
 
 extracting allele frequencies of beta tubulin P167,P198, P200 to make figure
 
@@ -188,12 +236,13 @@ library(dplyr)
 library(stringr)
 library(tidyr)
 library(rstatix)
+library(ggrepel)
 
 us_btub2 <- read.table("us_farms_btub2.ADfreq")
 colnames(us_btub2) <- c("CHR","POS","Farm 1","Farm 2","Farm 3","Farm 4","Farm 5","Farm 6","Farm 7","Farm 8","Farm 9","Farm 10")
 us_btub2 <- melt(us_btub2, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
 
-bz_conc <- c(1,1.5,0.58,0.57,15,61.57,29.6,NA,9.67,29.6)
+bz_conc <- c(1,19.93,15,7.71,15,61.57,29.6,NA,9.67,29.6)
 
 us_btub2$BZ_CONCENTRATION <- bz_conc
 colnames(us_btub2) <- c("CHR","POS","SAMPLE_ID","ALLELE_FREQ","BZ_CONCENTRATION")
@@ -202,59 +251,68 @@ us_btub2 <- us_btub2 %>%
   mutate(POS = str_replace(POS, c("13435823"), c("Glu198Val (Chr2:13435823/4 GA>TT)")))
 
 # calculate correlation coefficient between alllele frequency and concentration
-af_bz_cor <- cor(us_btub2$ALLELE_FREQ, us_btub2$BZ_CONCENTRATION, use = "pairwise.complete.obs")
+af_bz_cor <- cor.test(us_btub2$ALLELE_FREQ, us_btub2$BZ_CONCENTRATION, method = "pearson", use = "complete.obs")
 
 # make the plot
 plot_c <- ggplot(us_btub2)+
      geom_smooth(aes(BZ_CONCENTRATION,ALLELE_FREQ),method='lm',col='grey')+
-     geom_point(aes(BZ_CONCENTRATION,ALLELE_FREQ,col=SAMPLE_ID),size=2)+
-     geom_text(aes(10,0.95,label=paste('r = ',signif(af_bz_cor,3))))+
+     geom_jitter(aes(BZ_CONCENTRATION,ALLELE_FREQ,col=SAMPLE_ID),size=3)+
+     geom_text(aes(10,0.95,label=paste('r = ',signif(af_bz_cor$estimate,3),'\n','P = ',signif(af_bz_cor$p.value,3))))+
+     geom_text_repel(aes(BZ_CONCENTRATION,ALLELE_FREQ,label=SAMPLE_ID,col=SAMPLE_ID))+
      labs(title="C",y="Variant Allele Frequency",x="Benzimidazole concentration",col="US farm ID") +
-     ylim(0,1)+
+     ylim(-0.05,1)+
      facet_grid(.~POS)+
-     theme_bw()
-
-
-library(patchwork)
-plot_b + plot_c
-
-
-
-#-------------------------------------------------------------------------------
-#chromosome 1 Figure
-
-library(ggplot2)
-
-# import fst data
-xqtl_bz_fst <- read.table("XQTL_BZ.merged.fst",header=F)
-
-xqtl_bz_fst_chr1 <- xqtl_bz_fst[xqtl_bz_fst$V1=="hcontortus_chr1_Celeg_TT_arrow_pilon",]
-
-# calculate a genome wide significance cutoff
-genomewide_sig <- mean(xqtl_bz_fst_chr1$V13)+(3*sd(xqtl_bz_fst_chr1$V13))
-
-xqtl_bz_fst_chr1_peaks <- xqtl_bz_fst_chr1[(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD),]
-
-# get predicted peak windows
-
-peaks <- read.table("peak.windows.bed",header=T)
-
-peak_subset <- xqtl_bz_fst_chr1[(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD),]
-
-# make the plot
-plot_a <- ggplot(xqtl_bz_fst_chr1)+
-     geom_hline(yintercept=genomewide_sig, linetype="dashed",col="black")+
-     geom_vline(xintercept=7029790,linetype="dashed",col="grey")+
-     geom_point(aes(V2,V13,group=V1), col="cornflowerblue",size=0.5)+
-     geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[1]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[1]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
-     geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[2]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[2]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
-     geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[3]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[3]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
-     ylim(0,0.1)+xlim(0,50e6)+
      theme_bw()+
-     labs(title="A",x="Chromosome position (5 kb window)", y="Pre vs Post treatment Fst")+
-     facet_grid(.~V1)
+     theme(legend.position = "none")
 
 
+signif(af_bz_cor,3)
 
 library(patchwork)
 plot_a / (plot_b | plot_c)
+ggsave("Figure_benzimidazole.pdf", useDingbats=FALSE)
+
+
+
+#-----------------------------------------------------------------------------------------
+
+# supplement - isotype 1 data from US farms
+working dir:
+cd /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/US_FIELD/VCF
+
+cp ../../XQTL_BZ/btub.positions btub1.positions
+
+
+vcftools --vcf 1.hcontortus_chr1_Celeg_TT_arrow_pilon.snpeff.vcf --keep samples.list --positions btub1.positions --extract-FORMAT-info AD --out us_farms_btub1
+
+grep "^hcon" us_farms_btub1.AD.FORMAT | awk -F '[\t,]' '{print $1,$2,$4/($3+$4),$6/($5+$6),$8/($7+$8),$10/($9+$10),$12/($11+$12),$14/($13+$14),$16/($15+$16),$18/($17+$18),$20/($19+$20),$22/($21+$22)}' OFS="\t" > us_farms_btub1.ADfreq
+
+R
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(rstatix)
+
+us_btub1<- read.table("us_farms_btub1.ADfreq")
+colnames(us_btub1) <- c("CHR","POS","Farm 1","Farm 2","Farm 3","Farm 4","Farm 5","Farm 6","Farm 7","Farm 8","Farm 9","Farm 10")
+us_btub1 <- melt(us_btub1, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
+colnames(us_btub1) <- c("CHR","POS","SAMPLE_ID","ALLELE_FREQ")
+us_btub1 <- us_btub1 %>%
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
+
+ggplot(us_btub1,aes(x=SAMPLE_ID,y=ALLELE_FREQ,fill=factor(POS)))+
+     geom_bar(position="dodge", stat="identity")+
+     labs(title="A", x="Sampling location", y="Resistant allele frequency", fill="Variant")+
+     theme_bw()
+
+ggsave("FigureSX_USfarm_btub1.pdf", useDingbats=FALSE)
+
+
+
+
+
+#-----------------------------------------------------------------------------------------
+
+# supplement - ivermectin selection on btub P200
