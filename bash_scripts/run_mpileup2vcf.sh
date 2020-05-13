@@ -20,7 +20,7 @@
 # load modules
 module load \
 samtools/1.6--h244ad75_4 \
-fastaq/3.17.0-docker2 \
+fastaq/3.17.0-docker3 \
 bcftools/1.9--h68d8f2e_9
 
 
