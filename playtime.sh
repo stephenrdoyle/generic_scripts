@@ -159,3 +159,33 @@ p.data <- dplyr::bind_rows(control_stat.test, bz_stat.test)
 # make new plot with p values annotated on it
 plot_pvalues <- plot +
      geom_text(data=p.data, aes(x="1.PRE", y=0.95, group=POS, label = paste('P = ',p.adj)))
+
+
+#-----------------------------------------------------------------------------------------
+
+# isotype 2 in US farm data
+
+working dir:
+cd /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/US_FIELD/VCF
+
+echo "hcontortus_chr2_Celeg_TT_arrow_pilon 13435823" > btub.positions
+
+cat bam.list > samples.list
+
+vcftools --vcf 2.hcontortus_chr2_Celeg_TT_arrow_pilon.snpeff.vcf --keep samples.list --positions btub.positions --extract-FORMAT-info AD --out us_farms_btub2
+
+for i in `ls *AD.FORMAT`; do
+      grep "^hcon" ${i} | awk -F '[\t,]' '{print $1,$2,$4/($3+$4),$6/($5+$6),$8/($7+$8),$10/($9+$10),$12/($11+$12),$14/($13+$14),$16/($15+$16),$18/($17+$18),$20/($19+$20),$22/($21+$22)}' OFS="\t" > ${i%.AD.FORMAT}.ADfreq;
+done
+
+R
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(rstatix)
+
+us_btub2 <- read.table("us_farms_btub2.ADfreq")
+colnames(us_btub2) <- c("CHR","POS","UGA Susceptible","Ober","Histon","Krushing","Alday","Mulligan","Rau-Shelby Acres","Pena","679-238-USDA","Strickland")
+us_btub2 <- melt(us_btub2, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
