@@ -67,6 +67,8 @@ done
 # done
 
 
+
+
 ```R
 R
 library(reshape2)
@@ -107,23 +109,14 @@ data <- dplyr::bind_rows(control_data, bz_data)
 
 # change the labels
 data <- data %>%
-  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (SNP:7029569)","Phe200Tyr (SNP:7029790)")))
-
-
-
-
-
-
-
-
-
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
 
 
 
 # make the plot
 plot <- ggplot(data) +
      geom_segment(aes(x="1.PRE", xend="2.POST", y=PRE_TREATMENT, yend=POST_TREATMENT,col=factor(SAMPLE_ID),group=POS), size=1) +
-     labs(title="Beta tubulin isotype 1 (HCON_00005260): \nResistant allele frequency pre- and post-treatment",x="Sampling time-point",y="Resistant allele frequency",col="Replicate ID") +
+     labs(title="B",x="Sampling time-point",y="Resistant allele frequency",col="Replicate ID") +
      ylim(0,1)+
      facet_grid(TREATMENT~POS)+
      theme_bw()
@@ -141,11 +134,10 @@ bz_stat.test <- bz_data_stats %>%
       p.adjust.method = "bonferroni"
       ) %>%
     select(-df, -statistic, -p) # Remove details
-bz_stat.test
 
 bz_stat.test$TREATMENT <- "BZ_treated"
 bz_stat.test <- bz_stat.test %>%
-  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (SNP:7029569)","Phe200Tyr (SNP:7029790)")))
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
 
 # perform pairwise t tests between pre/post for each SNP on control samples
 control_data_stats <- control_data %>%
@@ -158,18 +150,18 @@ control_stat.test <- control_data_stats %>%
       p.adjust.method = "bonferroni"
       ) %>%
     select(-df, -statistic, -p) # Remove details
-control_stat.test
+
 
 control_stat.test$TREATMENT <- "Untreated_control"
 control_stat.test <- control_stat.test %>%
-  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (SNP:7029569)","Phe200Tyr (SNP:7029790)")))
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
 
 p.data <- dplyr::bind_rows(control_stat.test, bz_stat.test)
 
 
 # make new plot with p values annotated on it
-plot_pvalues <- plot +
-     geom_text(data=p.data, aes(x="1.PRE", y=0.95, group=POS, label = paste('P = ',p.adj)))
+plot_b <- plot +
+     geom_text(data=p.data, aes(x=1.5, y=0.95, group=POS, label = paste('P = ',p.adj)))
 
 
 #-----------------------------------------------------------------------------------------
@@ -206,12 +198,63 @@ bz_conc <- c(1,1.5,0.58,0.57,15,61.57,29.6,NA,9.67,29.6)
 us_btub2$BZ_CONCENTRATION <- bz_conc
 colnames(us_btub2) <- c("CHR","POS","SAMPLE_ID","ALLELE_FREQ","BZ_CONCENTRATION")
 
-ggplot(us_btub2)+
-     geom_smooth(aes(BZ_CONCENTRATION,ALLELE_FREQ),method='lm',col='grey',size=1.5)+
-     geom_point(aes(BZ_CONCENTRATION,ALLELE_FREQ,col=SAMPLE_ID))+
-     labs(title="Beta tubulin isotype 2 (HCON_00043670): \nGlu198Val (Chr2:13435823/4 GA>TT) variant frequency versus benzimidazole concentration",y="Allele Frequency (Chr2:13435823/4 GA>TT)",x="Benzimidazole concentration",col="US farm ID") +
+us_btub2 <- us_btub2 %>%
+  mutate(POS = str_replace(POS, c("13435823"), c("Glu198Val (Chr2:13435823/4 GA>TT)")))
+
+# calculate correlation coefficient between alllele frequency and concentration
+af_bz_cor <- cor(us_btub2$ALLELE_FREQ, us_btub2$BZ_CONCENTRATION, use = "pairwise.complete.obs")
+
+# make the plot
+plot_c <- ggplot(us_btub2)+
+     geom_smooth(aes(BZ_CONCENTRATION,ALLELE_FREQ),method='lm',col='grey')+
+     geom_point(aes(BZ_CONCENTRATION,ALLELE_FREQ,col=SAMPLE_ID),size=2)+
+     geom_text(aes(10,0.95,label=paste('r = ',signif(af_bz_cor,3))))+
+     labs(title="C",y="Variant Allele Frequency",x="Benzimidazole concentration",col="US farm ID") +
      ylim(0,1)+
+     facet_grid(.~POS)+
      theme_bw()
 
 
-cor(us_btub2$ALLELE_FREQ, us_btub2$BZ_CONCENTRATION, use = "pairwise.complete.obs")
+library(patchwork)
+plot_b + plot_c
+
+
+
+#-------------------------------------------------------------------------------
+#chromosome 1 Figure
+
+library(ggplot2)
+
+# import fst data
+xqtl_bz_fst <- read.table("XQTL_BZ.merged.fst",header=F)
+
+xqtl_bz_fst_chr1 <- xqtl_bz_fst[xqtl_bz_fst$V1=="hcontortus_chr1_Celeg_TT_arrow_pilon",]
+
+# calculate a genome wide significance cutoff
+genomewide_sig <- mean(xqtl_bz_fst_chr1$V13)+(3*sd(xqtl_bz_fst_chr1$V13))
+
+xqtl_bz_fst_chr1_peaks <- xqtl_bz_fst_chr1[(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD),]
+
+# get predicted peak windows
+
+peaks <- read.table("peak.windows.bed",header=T)
+
+peak_subset <- xqtl_bz_fst_chr1[(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD),]
+
+# make the plot
+plot_a <- ggplot(xqtl_bz_fst_chr1)+
+     geom_hline(yintercept=genomewide_sig, linetype="dashed",col="black")+
+     geom_vline(xintercept=7029790,linetype="dashed",col="grey")+
+     geom_point(aes(V2,V13,group=V1), col="cornflowerblue",size=0.5)+
+     geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[1]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[1]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
+     geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[2]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[2]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
+     geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[3]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[3]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
+     ylim(0,0.1)+xlim(0,50e6)+
+     theme_bw()+
+     labs(title="A",x="Chromosome position (5 kb window)", y="Pre vs Post treatment Fst")+
+     facet_grid(.~V1)
+
+
+
+library(patchwork)
+plot_a / (plot_b | plot_c)
