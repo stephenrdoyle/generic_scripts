@@ -109,6 +109,17 @@ data <- dplyr::bind_rows(control_data, bz_data)
 data <- data %>%
   mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (SNP:7029569)","Phe200Tyr (SNP:7029790)")))
 
+
+
+
+
+
+
+
+
+
+
+
 # make the plot
 plot <- ggplot(data) +
      geom_segment(aes(x="1.PRE", xend="2.POST", y=PRE_TREATMENT, yend=POST_TREATMENT,col=factor(SAMPLE_ID),group=POS), size=1) +
@@ -187,5 +198,20 @@ library(tidyr)
 library(rstatix)
 
 us_btub2 <- read.table("us_farms_btub2.ADfreq")
-colnames(us_btub2) <- c("CHR","POS","UGA Susceptible","Ober","Histon","Krushing","Alday","Mulligan","Rau-Shelby Acres","Pena","679-238-USDA","Strickland")
+colnames(us_btub2) <- c("CHR","POS","Farm 1","Farm 2","Farm 3","Farm 4","Farm 5","Farm 6","Farm 7","Farm 8","Farm 9","Farm 10")
 us_btub2 <- melt(us_btub2, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
+
+bz_conc <- c(1,1.5,0.58,0.57,15,61.57,29.6,NA,9.67,29.6)
+
+us_btub2$BZ_CONCENTRATION <- bz_conc
+colnames(us_btub2) <- c("CHR","POS","SAMPLE_ID","ALLELE_FREQ","BZ_CONCENTRATION")
+
+ggplot(us_btub2)+
+     geom_smooth(aes(BZ_CONCENTRATION,ALLELE_FREQ),method='lm',col='grey',size=1.5)+
+     geom_point(aes(BZ_CONCENTRATION,ALLELE_FREQ,col=SAMPLE_ID))+
+     labs(title="Beta tubulin isotype 2 (HCON_00043670): \nGlu198Val (Chr2:13435823/4 GA>TT) variant frequency versus benzimidazole concentration",y="Allele Frequency (Chr2:13435823/4 GA>TT)",x="Benzimidazole concentration",col="US farm ID") +
+     ylim(0,1)+
+     theme_bw()
+
+
+cor(us_btub2$ALLELE_FREQ, us_btub2$BZ_CONCENTRATION, use = "pairwise.complete.obs")
