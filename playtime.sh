@@ -266,8 +266,6 @@ plot_c <- ggplot(us_btub2)+
      theme(legend.position = "none")
 
 
-signif(af_bz_cor,3)
-
 library(patchwork)
 plot_a / (plot_b | plot_c)
 ggsave("Figure_benzimidazole.pdf", useDingbats=FALSE)
@@ -316,3 +314,169 @@ ggsave("FigureSX_USfarm_btub1.pdf", useDingbats=FALSE)
 #-----------------------------------------------------------------------------------------
 
 # supplement - ivermectin selection on btub P200
+
+
+working dir:
+cd /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/XQTL_IVM
+
+
+grep "pre" bam.list  > ivm_pretreatment_samples.list
+grep "post" bam.list  > ivm_posttreatment_samples.list
+
+
+cp ../XQTL_BZ/btub.positions .
+
+vcftools --vcf XQTL_IVM.raw.snpeff.vcf --keep ivm_pretreatment_samples.list --positions btub.positions --extract-FORMAT-info AD --out ivm_btub_pretreatment
+vcftools --vcf XQTL_IVM.raw.snpeff.vcf --keep ivm_posttreatment_samples.list --positions btub.positions --extract-FORMAT-info AD --out ivm_btub_posttreatment
+
+
+
+
+for i in `ls ivm*AD.FORMAT`; do
+      grep "^hcon" ${i} | awk -F '[\t,]' '{print $1,$2,$4/($3+$4),$6/($5+$6),$8/($7+$8),$10/($9+$10)}' OFS="\t" > ${i%.AD.FORMAT}.ADfreq;
+done
+
+```R
+R
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(rstatix)
+
+pre <- read.table("ivm_btub_pretreatment.ADfreq")
+colnames(pre) <- c("CHR","POS","R1","R1.2","R2","R3")
+pre <- melt(pre, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
+
+post <- read.table("ivm_btub_posttreatment.ADfreq")
+colnames(post) <- c("CHR","POS","R1","R1.2","R2","R3")
+post <- melt(post, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
+
+data <- dplyr::full_join(pre, post, by = c("CHR","POS","SAMPLE_ID"))
+data$TREATMENT <- "IVM_treated"
+colnames(data) <- c("CHR","POS","SAMPLE_ID","PRE_TREATMENT","POST_TREATMENT","TREATMENT")
+
+
+
+# change the labels
+data <- data %>%
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
+
+
+
+# make the plot
+plot_a <- ggplot(data) +
+     geom_segment(aes(x="1.PRE", xend="2.POST", y=PRE_TREATMENT, yend=POST_TREATMENT,col=factor(SAMPLE_ID),group=POS), size=1) +
+     labs(title="A",x="Sampling time-point",y="Resistant allele frequency",col="Replicate ID") +
+     ylim(-0.05,1.05)+
+     facet_grid(TREATMENT~POS)+
+     theme_bw()
+```
+
+
+# perform pairwise t tests between pre/post for each SNP on BZ treated samples
+data_stats <- data %>%
+  gather(key = "TREATMENT", value = "FREQ", PRE_TREATMENT, POST_TREATMENT)
+
+stat.test <- data_stats %>%
+    group_by(POS) %>%
+    pairwise_t_test(
+      FREQ ~ TREATMENT, paired = TRUE,
+      p.adjust.method = "bonferroni"
+      ) %>%
+    select(-df, -statistic, -p) # Remove details
+
+stat.test$TREATMENT <- "IVM_treated"
+
+p.data <- stat.test
+
+
+# make new plot with p values annotated on it
+plot_a <- plot_a +
+     geom_text(data=p.data, aes(x=1.5, y=0.95, group=POS, label = paste('P = ',p.adj)))
+
+
+
+
+#-------------------------------------------------------------------------------
+
+# correlation between btubulin isotype 1 and ivermectin concentration
+
+working dir:
+cd /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/US_FIELD/VCF
+
+cp ../../XQTL_BZ/btub.positions btub1.positions
+
+cat bam.list > samples.list
+
+vcftools --vcf 1.hcontortus_chr1_Celeg_TT_arrow_pilon.snpeff.vcf --keep samples.list --positions btub1.positions --extract-FORMAT-info AD --out us_farms_btub1
+
+grep "^hcon" us_farms_btub1.AD.FORMAT | awk -F '[\t,]' '{print $1,$2,$4/($3+$4),$6/($5+$6),$8/($7+$8),$10/($9+$10),$12/($11+$12),$14/($13+$14),$16/($15+$16),$18/($17+$18),$20/($19+$20),$22/($21+$22)}' OFS="\t" > us_farms_btub1.ADfreq
+
+
+R
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(rstatix)
+library(ggrepel)
+
+us_btub1 <- read.table("us_farms_btub1.ADfreq")
+colnames(us_btub1) <- c("CHR","POS","Farm 1","Farm 2","Farm 3","Farm 4","Farm 5","Farm 6","Farm 7","Farm 8","Farm 9","Farm 10")
+
+
+us_btub1 <- melt(us_btub1, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
+
+ivm_conc <- c(1.51,1.51,12.04,12.04,9.15,9.15,11.27,11.27,297.9,297.9,619,619,312.1,312.1,NA,NA,0.977,0.977,259.4,259.4)
+
+
+
+us_btub1$IVM_CONCENTRATION <- ivm_conc
+colnames(us_btub1) <- c("CHR","POS","SAMPLE_ID","ALLELE_FREQ","IVM_CONCENTRATION")
+
+us_btub1 <- us_btub1 %>%
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
+
+# calculate correlation coefficient between alllele frequency and concentration
+af_ivm_cor <- cor.test(us_btub1$ALLELE_FREQ, us_btub1$IVM_CONCENTRATION, method = "pearson", use = "complete.obs")
+
+P167 <- us_btub1[us_btub1$POS!="Phe167Tyr (Chr1:7029569)",]
+P200 <- us_btub1[us_btub1$POS!="Phe200Tyr (Chr1:7029790)",]
+
+P167cor <- cor.test(P167$ALLELE_FREQ, P167$IVM_CONCENTRATION, method = "pearson", use = "complete.obs")
+P200cor <- cor.test(P200$ALLELE_FREQ, P200$IVM_CONCENTRATION, method = "pearson", use = "complete.obs")
+
+P167cor.data <- as.data.frame(P167cor$estimate)
+P167cor.data$pvalue <- P167cor$p.value
+colnames(P167cor.data) <- c("COR","PVALUE")
+
+P200cor.data <- as.data.frame(P200cor$estimate)
+P200cor.data$pvalue <- P200cor$p.value
+colnames(P200cor.data) <- c("COR","PVALUE")
+
+cor.data <- dplyr::bind_rows(P167cor.data, P200cor.data)
+cor.data$CHR <- "hcontortus_chr1_Celeg_TT_arrow_pilon"
+cor.data$POS <-  c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")
+
+colnames(cor.data) <- c("COR","PVALUE","CHR","POS")
+
+# make the plot
+plot_b <- ggplot(us_btub1)+
+     geom_smooth(aes(IVM_CONCENTRATION,ALLELE_FREQ),method='lm',col='grey')+
+     geom_jitter(aes(IVM_CONCENTRATION,ALLELE_FREQ,col=SAMPLE_ID),size=3)+
+     geom_text_repel(aes(IVM_CONCENTRATION,ALLELE_FREQ,label=SAMPLE_ID,col=SAMPLE_ID))+
+     labs(title="B",y="Resistant Allele Frequency",x="Ivermectin concentration",col="US farm ID") +
+     ylim(-0.05,1.05)+
+     facet_grid(.~POS)+
+     theme_bw()+
+     theme(legend.position = "none")
+
+plot_b <- plot_b + geom_text(data=cor.data, aes(x=500, y=1, group=POS, label = paste('r = ',signif(COR,3),'\n','P = ',signif(PVALUE,3))))
+
+library(patchwork)
+plot_a + plot_b + plot_layout(ncol=2)
+
+ggsave("FigureSX_USfarm_btub1vsIVM.pdf", useDingbats=FALSE)
