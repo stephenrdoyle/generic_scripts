@@ -4,11 +4,49 @@
 
 
 
+#--------------------------------------------------------------------------------
+# Figure 2 - Fst plot for parent strains
+
+working dir:
+cd /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/PARENTS
+
+```R
+R
+library(ggplot2)
+
+# get data
+parents <- read.table("XQTL_PARENTS.merged.fst",header=F)
+parents <- parents[parents$V1!="hcontortus_chr_mtDNA_arrow_pilon",]
+
+# genome wide levels of significance
+
+
+chr_colours<-c("blue","cornflowerblue","blue","cornflowerblue","blue","cornflowerblue")
+
+data <- parents
+fst_column <- data$V7
+
+genomewide_sig <- mean(fst_column)+(3*sd(fst_column))
+
+ggplot(data)+
+     geom_hline(yintercept=genomewide_sig, linetype="dashed",col="black")+
+     geom_point(aes(1:nrow(data)*5000, fst_column, colour = V1),size=0.1)+
+     ylim(0,1)+
+     labs(title="A",x="Chromosome position (5 kbp window)", y="Genetic differentiation (Fst)")+
+     scale_color_manual(values=chr_colours)+
+     scale_x_continuous(breaks=seq(0,3e8,0.5e8))+
+     theme_bw()+theme(legend.position="none",text = element_text(size=10))
+
+
+ggsave("XQTL_parents_fst.pdf",useDingbats=FALSE,width=170,height=50,units="mm")
+
+```
 
 
 #-------------------------------------------------------------------------------
 # benzimidaole figure - panel A - chromosome 1
-
+```R
+R
 library(ggplot2)
 
 # import fst data
@@ -36,10 +74,10 @@ plot_a <- ggplot(xqtl_bz_fst_chr1)+
      geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[2]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[2]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
      geom_point(data = subset(xqtl_bz_fst_chr1,(xqtl_bz_fst_chr1$V2 >= peaks$PEAK_START_COORD[3]) & (xqtl_bz_fst_chr1$V2 <= peaks$PEAK_END_COORD[3]) & (V13 > genomewide_sig)),aes(V2,V13),col="red",size=1)+
      ylim(0,0.1)+xlim(0,50e6)+
-     theme_bw()+
-     labs(title="A",x="Chromosome position (5 kb window)", y="Pre vs Post treatment Fst")+
+     theme_bw()+theme(legend.position="none",text = element_text(size=10))+
+     labs(title="A",x="Chromosome position (5 kbp window)", y="Genetic differentiation (Fst)")+
      facet_grid(.~V1)
-
+```
 
 
 
@@ -48,10 +86,10 @@ plot_a <- ggplot(xqtl_bz_fst_chr1)+
 # benzimidaole figure - panel B - beta tubulin isotype 1 data
 
 
-extracting allele frequencies of beta tubulin P167,P198, P200 to make figure
+#extracting allele frequencies of beta tubulin P167,P198, P200 to make figure
 
-
-working dir:
+```shell
+#working dir:
 cd /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/XQTL_BZ
 
 
@@ -114,7 +152,7 @@ done
 #      awk -v i=$i -v j=$j -F '[\t,]' '{if(i<NF) print $1,$2,$j/($i+$j)}'
 # done
 
-
+```
 
 
 ```R
@@ -135,7 +173,7 @@ colnames(bz_post) <- c("CHR","POS","R1","R1.2","R2","R3")
 bz_post <- melt(bz_post, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
 
 bz_data <- dplyr::full_join(bz_pre, bz_post, by = c("CHR","POS","SAMPLE_ID"))
-bz_data$TREATMENT <- "BZ_treated"
+bz_data$TREATMENT <- "Benzimidazole"
 colnames(bz_data) <- c("CHR","POS","SAMPLE_ID","PRE_TREATMENT","POST_TREATMENT","TREATMENT")
 
 
@@ -148,7 +186,7 @@ colnames(control_post) <- c("CHR","POS","R1","R2","R3")
 control_post <- melt(control_post, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
 
 control_data <- dplyr::full_join(control_pre, control_post, by = c("CHR","POS","SAMPLE_ID"))
-control_data$TREATMENT <- "Untreated_control"
+control_data$TREATMENT <- "Untreated"
 colnames(control_data) <- c("CHR","POS","SAMPLE_ID","PRE_TREATMENT","POST_TREATMENT","TREATMENT")
 
 
@@ -157,19 +195,17 @@ data <- dplyr::bind_rows(control_data, bz_data)
 
 # change the labels
 data <- data %>%
-  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr","Phe200Tyr")))
 
 
 
 # make the plot
 plot <- ggplot(data) +
      geom_segment(aes(x="1.PRE", xend="2.POST", y=PRE_TREATMENT, yend=POST_TREATMENT,col=factor(SAMPLE_ID),group=POS), size=1) +
-     labs(title="B",x="Sampling time-point",y="Resistant allele frequency",col="Replicate ID") +
+     labs(title="B",x="Sampling time-point",y="Resistant allele frequency",col="Replicate") +
      ylim(0,1)+
      facet_grid(TREATMENT~POS)+
-     theme_bw()
-```
-
+     theme_bw()+theme(text = element_text(size=10))
 
 # perform pairwise t tests between pre/post for each SNP on BZ treated samples
 bz_data_stats <- bz_data %>%
@@ -183,9 +219,9 @@ bz_stat.test <- bz_data_stats %>%
       ) %>%
     select(-df, -statistic, -p) # Remove details
 
-bz_stat.test$TREATMENT <- "BZ_treated"
+bz_stat.test$TREATMENT <- "Benzimidazole"
 bz_stat.test <- bz_stat.test %>%
-  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr","Phe200Tyr")))
 
 # perform pairwise t tests between pre/post for each SNP on control samples
 control_data_stats <- control_data %>%
@@ -200,22 +236,23 @@ control_stat.test <- control_data_stats %>%
     select(-df, -statistic, -p) # Remove details
 
 
-control_stat.test$TREATMENT <- "Untreated_control"
+control_stat.test$TREATMENT <- "Untreated"
 control_stat.test <- control_stat.test %>%
-  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr","Phe200Tyr")))
 
 p.data <- dplyr::bind_rows(control_stat.test, bz_stat.test)
 
 
 # make new plot with p values annotated on it
 plot_b <- plot +
-     geom_text(data=p.data, aes(x=1.5, y=0.95, group=POS, label = paste('P = ',p.adj)))
-
+     geom_text(data=p.data, aes(x=1.5, y=0.95, group=POS, label = paste('P = ',p.adj)),size=3)
+```
 
 #-----------------------------------------------------------------------------------------
 
 # isotype 2 in US farm data
 
+```shell
 working dir:
 cd /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/US_FIELD/VCF
 
@@ -228,7 +265,8 @@ vcftools --vcf 2.hcontortus_chr2_Celeg_TT_arrow_pilon.snpeff.vcf --keep samples.
 for i in `ls *AD.FORMAT`; do
       grep "^hcon" ${i} | awk -F '[\t,]' '{print $1,$2,$4/($3+$4),$6/($5+$6),$8/($7+$8),$10/($9+$10),$12/($11+$12),$14/($13+$14),$16/($15+$16),$18/($17+$18),$20/($19+$20),$22/($21+$22)}' OFS="\t" > ${i%.AD.FORMAT}.ADfreq;
 done
-
+```
+```R
 R
 library(reshape2)
 library(ggplot2)
@@ -248,7 +286,7 @@ us_btub2$BZ_CONCENTRATION <- bz_conc
 colnames(us_btub2) <- c("CHR","POS","SAMPLE_ID","ALLELE_FREQ","BZ_CONCENTRATION")
 
 us_btub2 <- us_btub2 %>%
-  mutate(POS = str_replace(POS, c("13435823"), c("Glu198Val (Chr2:13435823/4 GA>TT)")))
+  mutate(POS = str_replace(POS, c("13435823"), c("Glu198Val")))
 
 # calculate correlation coefficient between alllele frequency and concentration
 af_bz_cor <- cor.test(us_btub2$ALLELE_FREQ, us_btub2$BZ_CONCENTRATION, method = "pearson", use = "complete.obs")
@@ -256,20 +294,21 @@ af_bz_cor <- cor.test(us_btub2$ALLELE_FREQ, us_btub2$BZ_CONCENTRATION, method = 
 # make the plot
 plot_c <- ggplot(us_btub2)+
      geom_smooth(aes(BZ_CONCENTRATION,ALLELE_FREQ),method='lm',col='grey')+
-     geom_jitter(aes(BZ_CONCENTRATION,ALLELE_FREQ,col=SAMPLE_ID),size=3)+
-     geom_text(aes(10,0.95,label=paste('r = ',signif(af_bz_cor$estimate,3),'\n','P = ',signif(af_bz_cor$p.value,3))))+
-     geom_text_repel(aes(BZ_CONCENTRATION,ALLELE_FREQ,label=SAMPLE_ID,col=SAMPLE_ID))+
+     geom_jitter(aes(BZ_CONCENTRATION,ALLELE_FREQ,col=SAMPLE_ID),size=2)+
+     geom_text(aes(10,0.95,label=paste('r = ',signif(af_bz_cor$estimate,3),'\n','P = ',signif(af_bz_cor$p.value,3))),size=3)+
+     geom_text_repel(aes(BZ_CONCENTRATION,ALLELE_FREQ,label=SAMPLE_ID,col=SAMPLE_ID),size=3.5)+
      labs(title="C",y="Variant Allele Frequency",x="Benzimidazole concentration",col="US farm ID") +
      ylim(-0.05,1)+
      facet_grid(.~POS)+
      theme_bw()+
-     theme(legend.position = "none")
+     theme(legend.position = "none",text = element_text(size=10))
+```
 
-
+```R
 library(patchwork)
 plot_a / (plot_b | plot_c)
-ggsave("Figure_benzimidazole.pdf", useDingbats=FALSE)
-
+ggsave("Figure_benzimidazole.pdf", useDingbats=FALSE,width=170,height=140,units="mm")
+```
 
 
 #-----------------------------------------------------------------------------------------
@@ -285,6 +324,7 @@ vcftools --vcf 1.hcontortus_chr1_Celeg_TT_arrow_pilon.snpeff.vcf --keep samples.
 
 grep "^hcon" us_farms_btub1.AD.FORMAT | awk -F '[\t,]' '{print $1,$2,$4/($3+$4),$6/($5+$6),$8/($7+$8),$10/($9+$10),$12/($11+$12),$14/($13+$14),$16/($15+$16),$18/($17+$18),$20/($19+$20),$22/($21+$22)}' OFS="\t" > us_farms_btub1.ADfreq
 
+```R
 R
 library(reshape2)
 library(ggplot2)
@@ -298,15 +338,15 @@ colnames(us_btub1) <- c("CHR","POS","Farm 1","Farm 2","Farm 3","Farm 4","Farm 5"
 us_btub1 <- melt(us_btub1, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
 colnames(us_btub1) <- c("CHR","POS","SAMPLE_ID","ALLELE_FREQ")
 us_btub1 <- us_btub1 %>%
-  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr","Phe200Tyr")))
 
 ggplot(us_btub1,aes(x=SAMPLE_ID,y=ALLELE_FREQ,fill=factor(POS)))+
      geom_bar(position="dodge", stat="identity")+
      labs(title="A", x="Sampling location", y="Resistant allele frequency", fill="Variant")+
-     theme_bw()
+     theme_bw()+theme(text = element_text(size=10))
 
-ggsave("FigureSX_USfarm_btub1.pdf", useDingbats=FALSE)
-
+ggsave("FigureSX_USfarm_btub1.pdf", useDingbats=FALSE,width=170,height=100,units="mm")
+```
 
 
 
@@ -354,25 +394,25 @@ colnames(post) <- c("CHR","POS","R1","R1.2","R2","R3")
 post <- melt(post, id = c("CHR", "POS"), variable.name = "SAMPLE_ID")
 
 data <- dplyr::full_join(pre, post, by = c("CHR","POS","SAMPLE_ID"))
-data$TREATMENT <- "IVM_treated"
+data$TREATMENT <- "Ivermectin"
 colnames(data) <- c("CHR","POS","SAMPLE_ID","PRE_TREATMENT","POST_TREATMENT","TREATMENT")
 
 
 
 # change the labels
 data <- data %>%
-  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr","Phe200Tyr")))
 
 
 
 # make the plot
 plot_a <- ggplot(data) +
      geom_segment(aes(x="1.PRE", xend="2.POST", y=PRE_TREATMENT, yend=POST_TREATMENT,col=factor(SAMPLE_ID),group=POS), size=1) +
-     labs(title="A",x="Sampling time-point",y="Resistant allele frequency",col="Replicate ID") +
+     labs(title="A",x="Sampling time-point",y="Resistant allele frequency",col="Replicate") +
      ylim(-0.05,1.05)+
      facet_grid(TREATMENT~POS)+
-     theme_bw()
-```
+     theme_bw()+theme(text = element_text(size=10))
+
 
 
 # perform pairwise t tests between pre/post for each SNP on BZ treated samples
@@ -387,16 +427,15 @@ stat.test <- data_stats %>%
       ) %>%
     select(-df, -statistic, -p) # Remove details
 
-stat.test$TREATMENT <- "IVM_treated"
+stat.test$TREATMENT <- "Ivermectin"
 
 p.data <- stat.test
 
 
 # make new plot with p values annotated on it
 plot_a <- plot_a +
-     geom_text(data=p.data, aes(x=1.5, y=0.95, group=POS, label = paste('P = ',p.adj)))
-
-
+     geom_text(data=p.data, aes(x=1.5, y=0.95, group=POS, label = paste('P = ',p.adj)),size=3)
+```
 
 
 #-------------------------------------------------------------------------------
@@ -414,7 +453,7 @@ vcftools --vcf 1.hcontortus_chr1_Celeg_TT_arrow_pilon.snpeff.vcf --keep samples.
 
 grep "^hcon" us_farms_btub1.AD.FORMAT | awk -F '[\t,]' '{print $1,$2,$4/($3+$4),$6/($5+$6),$8/($7+$8),$10/($9+$10),$12/($11+$12),$14/($13+$14),$16/($15+$16),$18/($17+$18),$20/($19+$20),$22/($21+$22)}' OFS="\t" > us_farms_btub1.ADfreq
 
-
+```R
 R
 library(reshape2)
 library(ggplot2)
@@ -438,13 +477,13 @@ us_btub1$IVM_CONCENTRATION <- ivm_conc
 colnames(us_btub1) <- c("CHR","POS","SAMPLE_ID","ALLELE_FREQ","IVM_CONCENTRATION")
 
 us_btub1 <- us_btub1 %>%
-  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")))
+  mutate(POS = str_replace(POS, c("7029569","7029790"), c("Phe167Tyr","Phe200Tyr")))
 
 # calculate correlation coefficient between alllele frequency and concentration
 af_ivm_cor <- cor.test(us_btub1$ALLELE_FREQ, us_btub1$IVM_CONCENTRATION, method = "pearson", use = "complete.obs")
 
-P167 <- us_btub1[us_btub1$POS!="Phe167Tyr (Chr1:7029569)",]
-P200 <- us_btub1[us_btub1$POS!="Phe200Tyr (Chr1:7029790)",]
+P167 <- us_btub1[us_btub1$POS!="Phe167Tyr",]
+P200 <- us_btub1[us_btub1$POS!="Phe200Tyr",]
 
 P167cor <- cor.test(P167$ALLELE_FREQ, P167$IVM_CONCENTRATION, method = "pearson", use = "complete.obs")
 P200cor <- cor.test(P200$ALLELE_FREQ, P200$IVM_CONCENTRATION, method = "pearson", use = "complete.obs")
@@ -459,24 +498,25 @@ colnames(P200cor.data) <- c("COR","PVALUE")
 
 cor.data <- dplyr::bind_rows(P167cor.data, P200cor.data)
 cor.data$CHR <- "hcontortus_chr1_Celeg_TT_arrow_pilon"
-cor.data$POS <-  c("Phe167Tyr (Chr1:7029569)","Phe200Tyr (Chr1:7029790)")
+cor.data$POS <-  c("Phe167Tyr","Phe200Tyr")
 
 colnames(cor.data) <- c("COR","PVALUE","CHR","POS")
 
 # make the plot
 plot_b <- ggplot(us_btub1)+
      geom_smooth(aes(IVM_CONCENTRATION,ALLELE_FREQ),method='lm',col='grey')+
-     geom_jitter(aes(IVM_CONCENTRATION,ALLELE_FREQ,col=SAMPLE_ID),size=3)+
-     geom_text_repel(aes(IVM_CONCENTRATION,ALLELE_FREQ,label=SAMPLE_ID,col=SAMPLE_ID))+
+     geom_jitter(aes(IVM_CONCENTRATION,ALLELE_FREQ,col=SAMPLE_ID),size=2)+
+     geom_text_repel(aes(IVM_CONCENTRATION,ALLELE_FREQ,label=SAMPLE_ID,col=SAMPLE_ID),size=2)+
      labs(title="B",y="Resistant Allele Frequency",x="Ivermectin concentration",col="US farm ID") +
      ylim(-0.05,1.05)+
      facet_grid(.~POS)+
-     theme_bw()+
-     theme(legend.position = "none")
+     theme_bw()+theme(legend.position = "none",text = element_text(size=10))
 
-plot_b <- plot_b + geom_text(data=cor.data, aes(x=500, y=1, group=POS, label = paste('r = ',signif(COR,3),'\n','P = ',signif(PVALUE,3))))
+
+plot_b <- plot_b + geom_text(data=cor.data, aes(x=500, y=1, group=POS, label = paste('r = ',signif(COR,3),'\n','P = ',signif(PVALUE,3))),size=3)
 
 library(patchwork)
-plot_a + plot_b + plot_layout(ncol=2)
+plot_a + plot_b + plot_layout(ncol=1)
 
-ggsave("FigureSX_USfarm_btub1vsIVM.pdf", useDingbats=FALSE)
+ggsave("FigureSX_USfarm_btub1vsIVM.pdf", useDingbats=FALSE, width=170, height=150, units="mm")
+```
