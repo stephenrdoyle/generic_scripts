@@ -1092,12 +1092,12 @@ plot_a + plot_b + ((plot_c / plot_d) | plot_e) + plot_layout(ncol=1, height=c(3,
 ln -s ../../03_MAPPING/XQTL/XQTL_F3_L3_n200_LEV_post_01_21395_3_2.merged.sorted.marked.realigned.bam post.bam
 ln -s ../../03_MAPPING/XQTL/XQTL_F3_L3_n200_LEV_post_01_21395_3_2.merged.sorted.marked.realigned.bam.bai post.bam.bai
 
-samtools view -b post.bam hcontortus_chr5_Celeg_TT_arrow_pilon:31525841-31529149 | bedtools bamtobed -cigar -split -i stdin > post.split.bed
+samtools view -b post.bam hcontortus_chr5_Celeg_TT_arrow_pilon:31525841-31529149 | bedtools bamtobed -cigar -splitD -i stdin > post.split.bed
 samtools view -b post.bam hcontortus_chr5_Celeg_TT_arrow_pilon:31525841-31529149 | bedtools bamtobed -cigar > post.whole.bed
 
-
-
-
+R
+library(data.table)
+library(ggplot2)
 # --- isoseq data - gaps
 gap_reads<-fread("post.split.bed")
 colnames(gap_reads) <- c("chr","start","end","readname","score","frame")
@@ -1107,21 +1107,21 @@ whole_reads<-fread("post.whole.bed")
 colnames(whole_reads) <- c("chr","start","end","readname","score","frame","cigar")
 
 
-gap_reads2 <- gap_reads[(gap_reads$chr==chromosome$chromosome_ID) & (gap_reads$start > (mrna$start-(0.1*(mrna$end-mrna$start)))) & (gap_reads$end < (mrna$end+(0.1*(mrna$end-mrna$start)))),]
-whole_reads2 <- whole_reads[(whole_reads$chr==chromosome$chromosome_ID) & (whole_reads$start > (mrna$start-(0.1*(mrna$end-mrna$start)))) & (whole_reads$end < (mrna$end+(0.1*(mrna$end-mrna$start)))),]
-whole_reads2$length <- (whole_reads2$end-whole_reads2$start)
-whole_reads2_10 <- tail(whole_reads2[order(whole_reads2$length)],200)
-whole_reads2_10$rank <- 1:nrow(whole_reads2_10)*1/200*5
+#gap_reads2 <- gap_reads[(gap_reads$start > (mrna$start-(0.1*(mrna$end-mrna$start)))) & (gap_reads$end < (mrna$end+(0.1*(mrna$end-mrna$start)))),]
+#whole_reads2 <- whole_reads[ & (whole_reads$start > (mrna$start-(0.1*(mrna$end-mrna$start)))) & (whole_reads$end < (mrna$end+(0.1*(mrna$end-mrna$start)))),]
+#whole_reads2$length <- (whole_reads2$end-whole_reads2$start)
+#whole_reads2_10 <- tail(whole_reads2[order(whole_reads2$length)],200)
+#whole_reads2_10$rank <- 1:nrow(whole_reads2_10)*1/200*5
 
 
-test_join <- dplyr:::inner_join(gap_reads2, whole_reads2_10, by = "readname")
+#test_join <- dplyr:::inner_join(gap_reads2, whole_reads2_10, by = "readname")
 
-ggplot()+
-geom_rect(data=whole_reads2_10,aes(xmin=whole_reads2_10$start,ymin=4+as.numeric(whole_reads2_10$rank)-0.02,xmax=whole_reads2_10$end,ymax=4+as.numeric(whole_reads2_10$rank)+0.02),fill="grey90")+
-geom_rect(data=test_join,aes(xmin=test_join$start.x,ymin=4+test_join$rank-0.08,xmax=test_join$end.x,ymax=4+test_join$rank+0.08),fill="cornflowerblue")
+#ggplot()+
+#geom_rect(data=whole_reads2_10,aes(xmin=whole_reads2_10$start,ymin=4+as.numeric(whole_reads2_10$rank)-0.02,xmax=whole_reads2_10$end,ymax=4+as.numeric(whole_reads2_10$rank)+0.02),fill="grey90")+
+#geom_rect(data=test_join,aes(xmin=test_join$start.x,ymin=4+test_join$rank-0.08,xmax=test_join$end.x,ymax=4+test_join$rank+0.08),fill="cornflowerblue")
 
 
-
+ ggplot()+geom_rect(aes(xmin=whole_reads$start,ymin=(1:nrow(whole_reads)-0.4),xmax=whole_reads$end,ymax=(1:nrow(whole_reads)+0.4)))
 
 
 
@@ -1135,3 +1135,49 @@ grep "LEV" samples_lanes.list > lev.samples_lanes.list
 hisat2-build ../../01_REFERENCE/HAEM_V4_final.chr.fa HAEM_V4_final.chr
 
 while read NAME READS; do hisat2 -x HAEM_V4_final.chr -1 ${READS}_1.fastq.gz -2 ${READS}_2.fastq.gz -S ${NAME}.sam ; done < lev.samples_lanes.list
+
+
+
+
+
+#library(Gvis)
+#library(GenomicRanges)
+
+
+
+library(GenomicAlignments)
+data_pre <- as.data.frame(readGAlignmentPairs("pre.bam", use.names=TRUE, param=ScanBamParam(which=GRanges("hcontortus_chr5_Celeg_TT_arrow_pilon", IRanges(31525841, 31529149)))))
+data_pre$number <- rep(1:100,length.out=nrow(data_pre))
+
+
+data_post <- as.data.frame(readGAlignmentPairs("post.bam", use.names=TRUE, param=ScanBamParam(which=GRanges("hcontortus_chr5_Celeg_TT_arrow_pilon", IRanges(31525841, 31529149)))))
+data_post$number <- rep(1:100,length.out=nrow(data_post))
+
+
+
+data <- data_pre
+
+plot_post <- ggplot()+
+          geom_rect(aes(xmin=data$start.first,ymin=data$number-0.3,xmax=data$end.first,ymax=data$number+0.3),fill="blue")+
+          geom_rect(aes(xmin=data$start.last,ymin=data$number-0.3,xmax=data$end.last,ymax=data$number+0.3),fill="blue")+
+          geom_curve(aes(x=data$start.first,xend=data$end.last+1,y=data$number,yend=data$number+0.1),curvature = -0.05)+
+          xlim(31525841, 31529149)+
+          theme_bw()+
+          labs(x="Chromosome position (bp)")+
+          theme(legend.position="none",text = element_text(size=10),
+          axis.title.y=element_blank(),
+          axis.text.y=element_blank(),
+          axis.ticks.y=element_blank())
+
+
+
+data <- data_post
+
+plot_post <-
+     ggplot()+
+          geom_rect(aes(xmin=data$start.first,ymin=data$number-0.4,xmax=data$end.first,ymax=data$number+0.4),fill="blue")+               geom_rect(aes(xmin=data$start.last,ymin=data$number-0.4,xmax=data$end.last,ymax=data$number+0.4),fill="blue")+
+          xlim(31525841, 31529149)+
+          geom_curve(aes(x=data$start.first,xend=data$end.last+1,y=data$number,yend=data$number+0.1),curvature = -0.05)
+
+
+plot_pre + plot_post + plot_layout(ncol=1)
