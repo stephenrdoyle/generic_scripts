@@ -910,7 +910,8 @@ colnames(utr32)<-c("start","end")
 utr2<-rbind(utr52,utr32)
 
 
-
+# deletion coordinates (size)
+# 31527022 to 31527119 (97 bp) / 31527121 (99 bp)
 
 
 # make plot
@@ -921,19 +922,24 @@ plot_b <- ggplot()+
   geom_segment(data=intron1,aes(x=intron1$start+intron1$midpoint,xend=intron1$end,y=1.5,yend=1),size=0.5)+
   geom_rect(data=cds1,aes(xmin=cds1$start,ymin=0.5,xmax=cds1$end,ymax=1.5),fill="grey",col=NA)+
   geom_text(aes(x=mrna1$end+(0.15*(mrna1$end-mrna1$start)), y=1, label = gene1))+
-  geom_segment(aes(x=31521884,xend=31521884,y=0.5,yend=1.5),size=1,col="red")+  # Ser168Thr
+  geom_segment(aes(x=31521884,xend=31521884,y=0.5,yend=1.5),size=1,col="orange")+  # Ser168Thr
+  geom_text(aes(x=31521884, y=0.4),label = "Ser168Thr")+
 #gene2
   geom_rect(data=utr2,aes(xmin=utr2$start,ymin=2,xmax=utr2$end,ymax=3),fill=NA,col="grey",size=0.4)+
   geom_segment(data=intron2,aes(x=intron2$start,xend=intron2$start+intron2$midpoint,y=2.5,yend=3),size=0.5)+
   geom_segment(data=intron2,aes(x=intron2$start+intron2$midpoint,xend=intron2$end,y=3,yend=2.5),size=0.5)+
   geom_rect(data=cds2,aes(xmin=cds2$start,ymin=2,xmax=cds2$end,ymax=3),fill="grey",col=NA)+
   geom_text(aes(x=mrna1$end+(0.15*(mrna1$end-mrna1$start)), y=2.5, label = gene2))+
+  # acr-8 indel
+  geom_segment(aes(x=31527022,xend=31527121,y=0.5,yend=3),size=1,col="red")+
+  geom_text(aes(x=31527022, y=0.4),label = "indel")+
+  #geom_rect(aes(xmin=31527022,ymin=0,xmax=31527121,ymax=3),fill=NA,col="grey",size=0.4)+
   # plot layout
   theme_classic()+
   #xlab("Genome position (bp)")+
   labs(title="B", x =paste("Chromosome: ",chromosome," position (bp)"))+
   xlim(mrna1$start-(0.1*(mrna1$end-mrna1$start)),mrna1$end+(0.25*(mrna1$end-mrna1$start)))+
-  scale_y_reverse(lim=c(3,0.5))+ scale_fill_discrete(guide=FALSE)+
+  scale_y_reverse(lim=c(3,0.4))+ scale_fill_discrete(guide=FALSE)+
   theme(axis.title.y=element_blank(),
         axis.text.y=element_blank(),
         axis.ticks.y=element_blank())
