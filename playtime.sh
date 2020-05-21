@@ -923,7 +923,7 @@ plot_b <- ggplot()+
   geom_rect(data=cds1,aes(xmin=cds1$start,ymin=0.5,xmax=cds1$end,ymax=1.5),fill="grey",col=NA)+
   geom_text(aes(x=mrna1$end+(0.15*(mrna1$end-mrna1$start)), y=1, label = gene1))+
   geom_segment(aes(x=31521884,xend=31521884,y=0.5,yend=1.5),size=1,col="orange")+  # Ser168Thr
-  geom_text(aes(x=31521884, y=0.4),label = "Ser168Thr")+
+  geom_text(aes(x=31521884, y=0.35),label = "Ser168Thr",size=3.5)+
 #gene2
   geom_rect(data=utr2,aes(xmin=utr2$start,ymin=2,xmax=utr2$end,ymax=3),fill=NA,col="grey",size=0.4)+
   geom_segment(data=intron2,aes(x=intron2$start,xend=intron2$start+intron2$midpoint,y=2.5,yend=3),size=0.5)+
@@ -931,18 +931,19 @@ plot_b <- ggplot()+
   geom_rect(data=cds2,aes(xmin=cds2$start,ymin=2,xmax=cds2$end,ymax=3),fill="grey",col=NA)+
   geom_text(aes(x=mrna1$end+(0.15*(mrna1$end-mrna1$start)), y=2.5, label = gene2))+
   # acr-8 indel
-  geom_segment(aes(x=31527022,xend=31527121,y=0.5,yend=3),size=1,col="red")+
-  geom_text(aes(x=31527022, y=0.4),label = "indel")+
+  geom_segment(aes(x=31527022,xend=31527022,y=0.5,yend=3),size=1,col="red")+
+  geom_text(aes(x=31527022, y=0.35),label = "indel",size=3.5)+
   #geom_rect(aes(xmin=31527022,ymin=0,xmax=31527121,ymax=3),fill=NA,col="grey",size=0.4)+
   # plot layout
   theme_classic()+
   #xlab("Genome position (bp)")+
   labs(title="B", x =paste("Chromosome: ",chromosome," position (bp)"))+
   xlim(mrna1$start-(0.1*(mrna1$end-mrna1$start)),mrna1$end+(0.25*(mrna1$end-mrna1$start)))+
-  scale_y_reverse(lim=c(3,0.4))+ scale_fill_discrete(guide=FALSE)+
+  scale_y_reverse(lim=c(3,0.35))+ scale_fill_discrete(guide=FALSE)+
   theme(axis.title.y=element_blank(),
         axis.text.y=element_blank(),
-        axis.ticks.y=element_blank())
+        axis.ticks.y=element_blank(),
+        text = element_text(size=10))
 
 
 
@@ -1107,23 +1108,27 @@ library(GenomicAlignments)
 library(viridis)
 library(stringr)
 
-data_pre <- as.data.frame(readGAlignmentPairs("pre.bam", use.names=TRUE, param=ScanBamParam(which=GRanges("hcontortus_chr5_Celeg_TT_arrow_pilon", IRanges(31525841, 31529149)))))
+pre_bam <- "pre.bam"
+pre_bam <- "XQTL_F3_L3_n200_LEV_pre_03_23241_8_1.merged.sorted.marked.realigned.bam"
+
+data_pre <- as.data.frame(readGAlignmentPairs(pre_bam, use.names=TRUE, param=ScanBamParam(which=GRanges("hcontortus_chr5_Celeg_TT_arrow_pilon", IRanges(31525841, 31529149)))))
 data_pre$number <- rep(1:100,length.out=nrow(data_pre))
 data_pre$treatment <- "3.pre"
 
-data_post <- as.data.frame(readGAlignmentPairs("post.bam", use.names=TRUE, param=ScanBamParam(which=GRanges("hcontortus_chr5_Celeg_TT_arrow_pilon", IRanges(31525841, 31529149)))))
+post_bam <- "post.bam"
+post_bam <-  "XQTL_F3_L3_n200_LEV_post_03_23241_8_2.merged.sorted.marked.realigned.bam"
+
+data_post <- as.data.frame(readGAlignmentPairs(post_bam, use.names=TRUE, param=ScanBamParam(which=GRanges("hcontortus_chr5_Celeg_TT_arrow_pilon", IRanges(31525841, 31529149)))))
 data_post$number <- rep(1:100,length.out=nrow(data_post))
 data_post$treatment <- "4.post"
 
+#data_ise <- as.data.frame(readGAlignmentPairs("ISE.bam", use.names=TRUE, param=ScanBamParam(which=GRanges("hcontortus_chr5_Celeg_TT_arrow_pilon", IRanges(31525841, 31529149)))))
+#data_ise$number <- rep(1:100,length.out=nrow(data_ise))
+#data_ise$treatment <- "1.ISE"
 
-
-data_ise <- as.data.frame(readGAlignmentPairs("ISE.bam", use.names=TRUE, param=ScanBamParam(which=GRanges("hcontortus_chr5_Celeg_TT_arrow_pilon", IRanges(31525841, 31529149)))))
-data_ise$number <- rep(1:100,length.out=nrow(data_ise))
-data_ise$treatment <- "1.ISE"
-
-data_uga <- as.data.frame(readGAlignmentPairs("UGA.bam", use.names=TRUE, param=ScanBamParam(which=GRanges("hcontortus_chr5_Celeg_TT_arrow_pilon", IRanges(31525841, 31529149)))))
-data_uga$number <- rep(1:100,length.out=nrow(data_uga))
-data_uga$treatment <- "2.UGA"
+#data_uga <- as.data.frame(readGAlignmentPairs("UGA.bam", use.names=TRUE, param=ScanBamParam(which=GRanges("hcontortus_chr5_Celeg_TT_arrow_pilon", IRanges(31525841, 31529149)))))
+#data_uga$number <- rep(1:100,length.out=nrow(data_uga))
+#data_uga$treatment <- "2.UGA"
 
 #data <- dplyr::bind_rows(data_ise,data_uga,data_pre,data_post)
 data <- dplyr::bind_rows(data_pre,data_post)
