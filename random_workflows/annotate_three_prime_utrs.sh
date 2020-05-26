@@ -16,7 +16,7 @@
 #
 # ----------------------------------------------------------------------------------------
 
-#
+# read inputs from command line and set variables
 PREFIX=$1
 GFF=$2
 TRANSCRIPT_LIST=$3
@@ -37,6 +37,7 @@ while read mRNA_ID; do
 
      mRNA_direction=$(awk '{print $7}' ${mRNA_ID}.utrtmp | head -n1)
 
+     # determine stand of transcript, so that utr can be placed correctly.
      if [ $mRNA_direction == "+" ];
      then
 
@@ -45,6 +46,7 @@ while read mRNA_ID; do
           exon_last=$(grep "exon" ${mRNA_ID}.utrtmp | sort -k5 | tail -n1 | cut -f5 )
           let  "utr_length=${exon_last}-${cds_last}"
 
+     # check length of utr relative to minimum length threshold. Keep if above threshold, or use fake utr length if too short
      if [ $utr_length -le $min_utr_length ];
      then
           utr_length=${fake_utr_length} ;
@@ -55,15 +57,18 @@ while read mRNA_ID; do
           let "utr_start=${cds_last}+1"
           let "utr_end=${utr_start}+${utr_length}-1"
 
+          # print data into new file
           printf ${chr}"\t""HC_WBP15_3UTRs""\t""three_prime_utr""\t"${utr_start}"\t"${utr_end}"\t"".""\t"${mRNA_direction}"\t"${utr_length}"\t""Name="${mRNA_ID}"_three_prime_utr;ID="${mRNA_ID}"_three_prime_utr;Parent="${mRNA_ID}"\n" >> ${PREFIX}_three_prime_utr_database.gff;
 
      else
 
+     # if not on the positive (+) strand, transcript must be on the antisense strand (-).
      chr=$(cut -f1 ${mRNA_ID}.utrtmp | head -n1 )
      cds_last=$(grep "CDS" ${mRNA_ID}.utrtmp | sort -k4 | head -n1 | cut -f4 )
      exon_last=$(grep "exon" ${mRNA_ID}.utrtmp | sort -k4 | head -n1 | cut -f4 )
      let  "utr_length=${cds_last}-${exon_last}"
 
+     # check length of utr relative to minimum length threshold. Keep if above threshold, or use fake utr length if too short
      if [ $utr_length -le $min_utr_length ];
      then
           utr_length=${fake_utr_length} ;
@@ -74,6 +79,7 @@ while read mRNA_ID; do
      let "utr_start=${cds_last}-1"
      let "utr_end=${utr_start}-${utr_length}+1"
 
+     # print data into new file
      printf ${chr}"\t""HC_WBP15_3UTRs""\t""three_prime_utr""\t"${utr_end}"\t"${utr_start}"\t"".""\t"${mRNA_direction}"\t"${utr_length}"\t""Name="${mRNA_ID}"_three_prime_utr;ID="${mRNA_ID}"_three_prime_utr;Parent="${mRNA_ID}"\n" >> ${PREFIX}_three_prime_utr_database.gff;
      fi;
 
