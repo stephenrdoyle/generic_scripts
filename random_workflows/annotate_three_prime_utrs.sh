@@ -85,6 +85,6 @@ done < ${TRANSCRIPT_LIST}
 
 
 
-#
-cat HCON_V4_WBP15_three_prime_utr_database.gff | sed 's/Name=//g' | awk -F'[\t;]' '{print $1,$4,$5,$9,"1",$7}' OFS="\t" > HCON_V4_WBP15_three_prime_utr_database.bed
-bedtools getfasta -fi ../../../REF/HAEM_V4_final.chr.fa -fo HCON_V4_WBP15_three_prime_utr_database.fasta -bed HCON_V4_WBP15_three_prime_utr_database.bed -name
+# to get fasta sequences after generating the gff, could do something like the following:
+# cat HCON_V4_WBP15_three_prime_utr_database.gff | sed 's/Name=//g' | awk -F'[\t;]' '{print $1,$4,$5,$9,"1",$7}' OFS="\t" > HCON_V4_WBP15_three_prime_utr_database.bed
+# bedtools getfasta -fi ../../../REF/HAEM_V4_final.chr.fa -fo HCON_V4_WBP15_three_prime_utr_database.fasta -bed HCON_V4_WBP15_three_prime_utr_database.bed -name -s
