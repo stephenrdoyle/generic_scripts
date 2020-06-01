@@ -50,6 +50,9 @@ while read mRNA_ID; do
      if [ $utr_length -le $min_utr_length ];
      then
           utr_length=${fake_utr_length} ;
+     elif [ $utr_length -ge $min_utr_length ];
+     then
+          utr_length=${fake_utr_length} ;
      else
           utr_length=${utr_length};
      fi
@@ -70,6 +73,9 @@ while read mRNA_ID; do
 
      # check length of utr relative to minimum length threshold. Keep if above threshold, or use fake utr length if too short
      if [ $utr_length -le $min_utr_length ];
+     then
+          utr_length=${fake_utr_length} ;
+     elif [ $utr_length -ge $min_utr_length ];
      then
           utr_length=${fake_utr_length} ;
      else
