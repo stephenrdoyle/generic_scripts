@@ -50,7 +50,7 @@ while read mRNA_ID; do
      if [ $utr_length -le $min_utr_length ];
      then
           utr_length=${fake_utr_length} ;
-     elif [ $utr_length -ge $min_utr_length ];
+     elif [ $utr_length -gt 1000 ];
      then
           utr_length=${fake_utr_length} ;
      else
@@ -75,7 +75,7 @@ while read mRNA_ID; do
      if [ $utr_length -le $min_utr_length ];
      then
           utr_length=${fake_utr_length} ;
-     elif [ $utr_length -ge $min_utr_length ];
+     elif [ $utr_length -gt 1000 ];
      then
           utr_length=${fake_utr_length} ;
      else
