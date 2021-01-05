@@ -1,108 +1,370 @@
 
 # playtime
 
-# downloaded protein sequences from WBP frmo ortholog set of C. elegans acr-8
-
-WBGene00036931|cabrigprjna10731   Caenorhabditis_briggsae
-Cni-acr-8|canigoprjna384657  Caenorhabditis_nigoni
-WBGene00058468|caremaprjna53967   Caenorhabditis_remanei
-Csp11.Scaffold629.g13743|catropprjna53597   Caenorhabditis_tropicalis
-ACAC_0000398801|ancantprjeb493    Angiostrongylus_cantonensis
-ANCDUO_01121|anduodprjna72581     Ancylostoma_duodenale
-ACOC_0000247401|ancostprjeb494    Angiostrongylus_costaricensis
-Cang_2012_03_13_00065.g3190|caangaprjna51225     Caenorhabditis_angaria
-arcanus-mkr-S_1590-0.0-mRNA-1|prarcaprjeb27334   Pristionchus_arcanus
-Acey_s0072.g653|anceylprjna231479 Ancylostoma_ceylanicum
-HPOL_0000787701|hepolyprjeb15396  Heligmosomoides_polygyrus
-DCO_008622|dicoroprjdb3143   Diploscapter_coronatus
-FL83_01328|calateprjna248912 Caenorhabditis_latens
-HPLM_0000547301|haplacprjeb509    Haemonchus_placei
-fissidentatus-mkr-S40-3.15-mRNA-1|prfissprjeb27334    Pristionchus_fissidentatus
-maxplancki-mkr-S100-2.104-mRNA-1|prmaxpprjeb27334     Pristionchus_maxplancki
-HCON_00151270|hacontprjeb506 Haemonchus_contortus
-japonicus-mkr-S267-0.26-mRNA-1|prjapoprjeb27334  Pristionchus_japonicus
-OESDEN_01101|oedentprjna72579     Oesophagostomum_dentatum
-MicoRS5524-ag_msk-S79-2.36-mRNA-1|mijapoprjeb27334    Micoletzkya_japonica
-WBGene00000047|caelegprjna13758   Caenorhabditis_elegans
-WBGene00092568|prpaciprjna12644   Pristionchus_pacificus
-SVUK_0001037501|stvulgprjeb531    Strongylus_vulgaris
-WR25_23289|dipachprjna280107 Diploscapter_pachys
-Sp34_X0071520|casp34prjdb5687     Caenorhabditis_inopinata
-NECAME_16202|neamerprjna72135     Necator_americanus
-OTIPU.nOt.2.0.1.g01642|ostipuprjeb15512     Oscheius_tipulae
-nAv.1.0.1.g09901|acviteprjeb1697  Acanthocheilonema_viteae
-mayeri-mkr-S55-0.24-mRNA-1|prmayeprjeb27334 Pristionchus_mayeri
-NBR_0000568801|nibrasprjeb511     Nippostrongylus_brasiliensis
-
-# removed - poor / missing alignment in region of interest
-entomophagus-mkr-S570-0.22-mRNA-1|prentoprjeb27334    Pristionchus_entomophagus
-exspectatus-mkr-S_1791-0.14-mRNA-1|prexspprjeb24288   Pristionchus_exspectatus
-CGOC_0000275601|cygoldprjeb498    Cylicostephanus_goldi
-DICVIV_07636|diviviprjna72587     Dictyocaulus_viviparus
-ANCCAN_17789|ancaniprjna72585     Ancylostoma_caninum
-Csp5_scaffold_00005.g324|casiniprjna194557  Caenorhabditis_sinica
-WBGene00139702|cabrenprjna20035   Caenorhabditis_brenneri
-mbelari.g26242|mebelaprjeb30104   Mesorhabditis_belari
 
 
-# substitute names from transcript ID to species name
-while read old new; do sed -i "s/${old}/${new}/" wbp_acr8.fa; done < rename
+# for mintie
 
-# extract fasta sequences based on the new names to a new fasta
-while read old new; do samtools faidx wbp_acr8.fa ${new}; done < rename > wb_cladeV_acr8.fa
-
-# make an alignment using mafft
-module load mafft/7.407=1
-
-mafft --localpair --maxiterate 16 --reorder "wb_cladeV_acr8.fa" > "wb_cladeV_acr8.aln"
+transcript	chrom	exonStarts	exonEnds	gene
+CHS.1.1	chr1	11873,12612,13220	12227,12721,14409	DDX11L1
+CHS.2.1	chr1	14361,14969,15795,16606,16857,17232,17605,17914,18267,24737,29320	14829,15038,15947,16765,17055,17368,17742,18061,18366,24891,29370	WASH7P
 
 
 
-# make a plot
+awk -F'[\t;]' '{if($3=="mRNA") print $9}' HCON_V4_curated_20200422_WBPS15.gff3 | sed 's/Name=//g' >  transcript.list
+
+#test
+#echo "HCON_00000020-00001" > transcript.list
+
+printf transcript"\t"chrom"\t"exonStarts"\t"exonEnds"\t"gene"\n" > HAEM_V4_final.info
+
+while read TRANSCRIPT; do
+grep "${TRANSCRIPT}" HCON_V4_curated_20200422_WBPS15.gff3 > ${TRANSCRIPT}.tmp;
+chrom=$(cat ${TRANSCRIPT}.tmp | cut -f1 | head -n1)
+exonStarts=$(cat ${TRANSCRIPT}.tmp | awk '{if($3=="exon") print $4}' | sort | xargs | sed -e 's/ /,/g')
+exonEnds=$(cat ${TRANSCRIPT}.tmp | awk '{if($3=="exon") print $5}' | sort | xargs | sed -e 's/ /,/g')
+gene=$( echo ${TRANSCRIPT} | cut -c-13 )
+
+printf ${TRANSCRIPT}"\t"${chrom}"\t"${exonStarts}"\t"${exonEnds}"\t"${gene}"\n" >> HAEM_V4_final.info
+rm *.tmp
+done < transcript.list
+
+sed -i 's/^[ \t]*//' HAEM_V4_final.info
+
+cat transcript.list | awk '{print $1,substr($1,1,13)}' > tx2gene.txt
+
+
+
+
+
+
+
+
+---------------------------------------------------------------------------------------------------------------------
+#popooolation2 TE
+
+working dir:
+/nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/PP2_TE
+
+
+# genome
+ln -s ../../01_REFERENCE/HAEM_V4_final.chr.fa
+
+# LTR digest repeats
+ln -s /nfs/users/nfs_s/sd21/lustre118_link/hc/GENOME/REPEATS/CHR_LTR/HAEM_V4_final.chr.ltrdigest.gff.2.fa
+
+#repeat modeller output
+ln -s /nfs/users/nfs_s/sd21/lustre118_link/hc/GENOME/REPEATS/CHR/RM_43484.TueMar271017292018/consensi.fa.classified
+
+cat HAEM_V4_final.chr.ltrdigest.gff.2.fa consensi.fa.classified > TE.fa
+
+
+
+module load tetools/1.1-c3
+
+# run repeat masker
+bsub.py 10 --threads 4 RM "RepeatMasker -gccalc -s -cutoff 200 -no_is -nolow -norna -gff -u -pa 4 -lib  TE.fa HAEM_V4_final.chr.fa"
+
+# merge masked reference and TE reference
+cat HAEM_V4_final.chr.fa.masked TE.fa > HAEM_V4_final.masked.TE.merge.fa
+
+
+# make a "te-heirarchy" file, containing repeat name, repeat family, repeat type
+printf "id\tfamily\torder\n" > te-hierarchy.txt
+cat  HAEM_V4_final.chr.fa.out | awk '{print $10,$11,$11}' OFS="\t"  | sed -e 's/\/[^\/]*//2g' -e '1,3d' | sort | uniq  >> te-hierarchy.txt
+
+module load bwa/0.7.17=pl5.22.0_2
+module load samtools/1.6--h244ad75_4
+
+~sd21/bash_scripts/run_bwamem_splitter MHCO3_P0_L3_n200_01 $PWD/HAEM_V4_final.masked.TE.merge.fa /lustre/scratch118/infgen/pathogen/pathpipe/helminths/seq-pipelines/Haemonchus/contortus/TRACKING/2679/2679STDY7527671/SLX/22599742/26582_8#1/26582_8#1_1.fastq.gz /lustre/scratch118/infgen/pathogen/pathpipe/helminths/seq-pipelines/Haemonchus/contortus/TRACKING/2679/2679STDY7527671/SLX/22599742/26582_8#1/26582_8#1_2.fastq.gz &
+~sd21/bash_scripts/run_bwamem_splitter MHCO18_P0_L3_n200_IVM_01 $PWD/HAEM_V4_final.masked.TE.merge.fa /lustre/scratch118/infgen/pathogen/pathpipe/helminths/seq-pipelines/Haemonchus/contortus/TRACKING/2679/2679STDY7527672/SLX/22599754/26582_8#2/26582_8#2_1.fastq.gz /lustre/scratch118/infgen/pathogen/pathpipe/helminths/seq-pipelines/Haemonchus/contortus/TRACKING/2679/2679STDY7527672/SLX/22599754/26582_8#2/26582_8#2_2.fastq.gz &
+
+~sd21/bash_scripts/run_bwamem_splitter XQTL_F3_L3_n200_IVM_post_01 $PWD/HAEM_V4_final.masked.TE.merge.fa /lustre/scratch118/infgen/pathogen/pathpipe/helminths/seq-pipelines/Haemonchus/contortus/TRACKING/2679/2679STDY6583135/SLX/18074181/21395_2#2/21395_2#2_1.fastq.gz /lustre/scratch118/infgen/pathogen/pathpipe/helminths/seq-pipelines/Haemonchus/contortus/TRACKING/2679/2679STDY6583135/SLX/18074181/21395_2#2/21395_2#2_2.fastq.gz &
+
+
+
+
+bsub.py 10 pp2_te \
+java -Xmx10g -jar /nfs/users/nfs_s/sd21/lustre118_link/software/POOLSEQ/popte2-v1.10.04.jar ppileup \
+--bam /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/PP2_TE/MHCO3_P0_L3_n200_01_bwasplitter_out/MHCO3_P0_L3_n200_01.merged.sorted.marked.bam \
+--bam /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/PP2_TE/MHCO18_P0_L3_n200_IVM_01_bwasplitter_out/MHCO18_P0_L3_n200_IVM_01.merged.sorted.marked.bam \
+--bam /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/PP2_TE/XQTL_F3_L3_n200_IVM_post_01_bwasplitter_out/XQTL_F3_L3_n200_IVM_post_01.merged.sorted.marked.bam \
+--map-qual 15 --hier te-hierarchy.txt --output output.ppileup \
+--detailed-log
+
+mv output.ppileup output.ppileup.gz
+
+bsub.py 10 pp2_te_identifySignatures "java -Xmx10g -jar /nfs/users/nfs_s/sd21/lustre118_link/software/POOLSEQ/popte2-v1.10.04.jar identifySignatures --ppileup output.ppileup.gz --mode joint --output ISEvUGA.signatures --min-count 10 --signature-window minimumSampleMedian --min-valley minimumSampleMedian"
+bsub.py 10 pp2_te_freq "java -Xmx10g -jar /nfs/users/nfs_s/sd21/lustre118_link/software/POOLSEQ/popte2-v1.10.04.jar frequency --ppileup output.ppileup.gz --signature ISEvUGA.signatures --output ISEvUGA.freqsig"
+bsub.py 10 pp2_te_PUsigs "java -Xmx10g -jar /nfs/users/nfs_s/sd21/lustre118_link/software/POOLSEQ/popte2-v1.10.04.jar pairupSignatures --signature ISEvUGA.freqsig --ref-genome HAEM_V4_final.masked.TE.merge.fa --hier te-hierarchy.txt --min-distance -200 --max-distance 300 --output ISEvUGA.teinsertions"
+
+
+
+
+
+
+
+
+
+
+
+
+# map RNAseq reads to reference using STAR
+for i in $(ls *R1_001.fastq.gz | rev | cut -c 17- | rev) ; do \
+/nfs/users/nfs_s/sd21/lustre118_link/software/TRANSCRIPTOME/STAR/bin/Linux_x86_64/STAR \
+--twopassMode Basic \
+--runThreadN 8 \
+--genomeDir /nfs/users/nfs_s/sd21/lustre118_link/REFERENCE_SEQUENCES/haemonchus_contortus/hc_v4chr_rnaseq_star_index \
+--readFilesIn ${i}_R1_001.fastq.gz ${i}_R2_001.fastq.gz \
+--readFilesCommand zcat \
+--outSAMstrandField intronMotif \
+--outSAMtype BAM Unsorted \
+--outFileNamePrefix ${i}; \
+done
+
+
+
+
+
+
+
+conda activate py37
+export LD_LIBRARY_PATH=/nfs/users/nfs_s/sd21/lustre118_link/software/anaconda2/envs/py37/lib/
+
+
+#!/bin/sh
+cases=`ls cases/*fastq.gz`
+controls=`ls controls/*fastq.gz`
+
+/nfs/users/nfs_s/sd21/lustre118_link/software/TRANSCRIPTOME/MINTIE/tools/bin/bpipe \
+run @/nfs/users/nfs_s/sd21/lustre118_link/software/TRANSCRIPTOME/MINTIE/params.txt \
+/nfs/users/nfs_s/sd21/lustre118_link/software/TRANSCRIPTOME/MINTIE/MINTIE.groovy $cases $controls
+#kisssplice
+/nfs/users/nfs_s/sd21/lustre118_link/software/TRANSCRIPTOME/STAR/bin/Linux_x86_64/STARlong --genomeDir /nfs/users/nfs_s/sd21/lustre118_link/REFERENCE_SEQUENCES/haemonchus_contortus/hc_v4chr_rnaseq_star_index --readFilesIn *type_1.fa --outSAMunmapped Within --outFileNamePrefix type1_mapped
+/nfs/users/nfs_s/sd21/lustre118_link/software/TRANSCRIPTOME/STAR/bin/Linux_x86_64/STARlong --genomeDir /nfs/users/nfs_s/sd21/lustre118_link/REFERENCE_SEQUENCES/haemonchus_contortus/hc_v4chr_rnaseq_star_index --readFilesIn *type_2.fa --outSAMunmapped Within --outFileNamePrefix type2_mapped
+/nfs/users/nfs_s/sd21/lustre118_link/software/TRANSCRIPTOME/STAR/bin/Linux_x86_64/STARlong --genomeDir /nfs/users/nfs_s/sd21/lustre118_link/REFERENCE_SEQUENCES/haemonchus_contortus/hc_v4chr_rnaseq_star_index --readFilesIn *type_3.fa --outSAMunmapped Within --outFileNamePrefix type3_mapped
+/nfs/users/nfs_s/sd21/lustre118_link/software/TRANSCRIPTOME/STAR/bin/Linux_x86_64/STARlong --genomeDir /nfs/users/nfs_s/sd21/lustre118_link/REFERENCE_SEQUENCES/haemonchus_contortus/hc_v4chr_rnaseq_star_index --readFilesIn *type_4.fa --outSAMunmapped Within --outFileNamePrefix type4_mapped
+
+
+
+
+
+
+-rw-r--r-- 1 sd21  225 Oct 17  2018 ZAI.population.list
+-rw-r--r-- 1 sd21   66 Oct 17  2018 US.population.list
+-rw-r--r-- 1 sd21  135 Oct 17  2018 STO.population.list
+-rw-r--r-- 1 sd21  660 Oct 17  2018 STA.population.list
+-rw-r--r-- 1 sd21   75 Oct 17  2018 POR.population.list
+-rw-r--r-- 1 sd21  165 Oct 17  2018 PK.population.list
+-rw-r--r-- 1 sd21  225 Oct 17  2018 NAM.population.list
+-rw-r--r-- 1 sd21  195 Oct 17  2018 MOR.population.list
+-rw-r--r-- 1 sd21  135 Oct 17  2018 ITA.population.list
+-rw-r--r-- 1 sd21  105 Oct 17  2018 IND.population.list
+-rw-r--r-- 1 sd21  528 Oct 17  2018 GB.population.list
+-rw-r--r-- 1 sd21  345 Oct 17  2018 FRG.population.list
+-rw-r--r-- 1 sd21 1005 Oct 17  2018 FRA.population.list
+-rw-r--r-- 1 sd21   77 Oct 17  2018 CH.population.list
+-rw-r--r-- 1 sd21  210 Oct 17  2018 CAP.population.list
+-rw-r--r-- 1 sd21  225 Oct 17  2018 BRA.population.list
+-rw-r--r-- 1 sd21  195 Oct 17  2018 BEN.population.list
+-rw-r--r-- 1 sd21  225 Oct 17  2018 AUS.population.list
+
+
+#P167
+hcontortus_chr1_Celeg_TT_arrow_pilon 7029569
+#P198
+hcontortus_chr1_Celeg_TT_arrow_pilon 7029788
+# P200
+hcontortus_chr1_Celeg_TT_arrow_pilon 7029790
+# btub iso2
+hcontortus_chr2_Celeg_TT_arrow_pilon 13435823
+
+
+
+# for i in $(ls *.population.list); do \
+#      vcftools \
+#      --gzvcf ../../1.hcontortus_chr1_Celeg_TT_arrow_pilon.cohort.vcf.gz \
+#      --gzvcf ../../2.hcontortus_chr2_Celeg_TT_arrow_pilon.cohort.vcf.gz \
+#      --keep ${i} \
+#      --positions btub.positions \
+#      --freq --out global_${i}; \
+# done
+
+
+for i in $(ls *.population.list); do \
+zcat ../../1.hcontortus_chr1_Celeg_TT_arrow_pilon.cohort.vcf.gz ../../2.hcontortus_chr2_Celeg_TT_arrow_pilon.cohort.vcf.gz | \
+     vcftools \
+     --vcf - \
+     --keep ${i} \
+     --positions btub.positions \
+     --freq --out global_${i}; \
+done
+
+#iso2 p200
+hcontortus_chr2_Celeg_TT_arrow_pilon 13435829
+
+for i in $(ls *.population.list); do \
+     vcftools \
+     --gzvcf ../../2.hcontortus_chr2_Celeg_TT_arrow_pilon.cohort.vcf.gz \
+     --keep ${i} \
+     --positions btub.positions2 \
+     --freq --out global_iso2P200.${i}; \
+done
+#------
+
+
+
+
+
+
+
+
+
+
+# plot of backcross data for Erik Andersen
+cavr <- ggplot(chr5,aes(V2,V21))+
+     geom_point(size=0.5)+
+     xlim(30e6,45e6)+
+     geom_vline(xintercept=c(36.8e6,41.3e6))+
+     geom_hline(yintercept=mean(chr5$V21)+3*sd(chr5$V21))+
+     geom_vline(xintercept=c(37.2e6,37.5e6),col="red")
+
+
+wrs <- ggplot(chr5,aes(V2,V25))+
+     geom_point(size=0.5)+
+     xlim(30e6,45e6)+
+     geom_vline(xintercept=c(36.8e6,42.4e6))+
+     geom_hline(yintercept=mean(chr5$V25)+3*sd(chr5$V25))+
+     geom_vline(xintercept=c(37.2e6,37.5e6),col="red")
+
+
+cavr + wrs + plot_layout(ncol=1)
+
+
+
+
+
+
+
+
+# forqs
+LANG=/usr/lib/locale/en_US
+export LC_ALL=C; unset LANGUAGE
+
+
+
+
+# XQTL supplementary data - looking a fst distribution, and cutoffs
+
+cd /nfs/users/nfs_s/sd21/lustre118_link/hc/XQTL/04_VARIANTS/XQTL_CONTROL
+
+
 R
-library(ggmsa)
+# load libraries
 library(ggplot2)
+library(ggridges)
+library(dplyr)
+library(patchwork)
 
-# define the alignment window - chosen to flank the Ser167Thr position in H. contortus
-ALIGNMENT_START=225
-ALIGNMENT_END=275
+# get data
+control <- read.table("XQTL_CONTROL/XQTL_CONTROL.merged.fst",header=F)
+bz <- read.table("XQTL_BZ/XQTL_BZ.merged.fst",header=F)
+lev <- read.table("XQTL_LEV/XQTL_LEV.merged.fst",header=F)
+ivm <- read.table("XQTL_IVM/XQTL_IVM.merged.fst",header=F)
 
-# load data and clean up for plotting
-data <- tidy_msa("wb_cladeV_acr8.aln", ALIGNMENT_START, ALIGNMENT_END)
+# add labels before merging
+control$id <- "1. Control"
+bz$id <- "2. Benzimidazole treated"
+lev$id <- "3. Levamisole treated"
+ivm$id <- "4. Ivermectin treated"
+
+control <- select(control,c(V1,V2,V13,id))
+bz <- select(bz,c(V1,,V2,V13,id))
+lev <- select(lev,c(V1,V2,V13,id))
+ivm <- select(ivm,c(V1,V2,V13,id))
+
+data <- bind_rows(control, bz, lev, ivm)
+data <- data[data$V1!="hcontortus_chr_mtDNA_arrow_pilon",]
 
 
-# colour scheme - based on amino acid properties
-<!-- Aliphatic #CD2127   A
-Aliphatic #CD2127   G
-Aliphatic #CD2127   I
-Aliphatic #CD2127   L
-Aliphatic #CD2127   P
-Aliphatic #CD2127   V
-Aromatic  #AAC64B    F
-Aromatic  #AAC64B    W
-Aromatic  #AAC64B    Y
-Acidic    #ED6823   D
-Acidic    #ED6823   E
-Basic     #759CD1   R
-Basic     #759CD1   H
-Basic     #759CD1   K
-Hydroxylic     #F09AC1   S
-Hydroxylic     #F09AC1   T
-Sulfur-containing   #EDAB20   C
-Sulfur-containing   #EDAB20   M
-Amidic    #283983   N
-Amidic    #283983   Q -->
+vline.data <- data %>%
+              group_by(id) %>%
+              summarize(mean_fst_3sd = mean(V13)+3*sd(V13))
 
-colours <- c("A"="#CD2127","G"="#CD2127","I"="#CD2127","L"="#CD2127","P"="#CD2127","V"="#CD2127","F"="#AAC64B","W"="#AAC64B","Y"="#AAC64B","D"="#ED6823","E"="#ED6823","R"="#759CD1","H"="#759CD1","K"="#759CD1","S"="#F09AC1","T"="#F09AC1","C"="#EDAB20","M"="#EDAB20","N"="#283983","Q"="#283983","-"="white")
+# plot
+fst_distribution_plot <- ggplot(data,aes(V13,id)) +
+     geom_density_ridges(aes(fill = id),scale = 1) + xlim(0,0.05) +
+     geom_vline(aes(xintercept = mean_fst_3sd, col = id), vline.data, size = 1, linetype = "dashed") +
+     scale_y_discrete(limits = rev(data$id)) + theme_bw() +
+     labs(title="A", x="FST")
 
-# make the plot
-ggplot(data,aes(y=name, x=position)) +
-     geom_tile(aes(fill=character),col="grey",na.rm = TRUE) +
-     geom_text(aes(label=character),col="black",size=2)+
-     geom_text(aes(x=253,y=31),label="*")+
-     geom_text(aes(x=253,y=29.5),label="H. contortus\nSer167Thr",size=3)+
-     theme_minimal()+theme(legend.position = "none")+
-     labs(y="Species", x="Alignment position",text = element_text(size=10))+
-     scale_fill_manual(values = colours)
 
-ggsave("acr8_multiple_sequence_alignment.pdf", width=170,height=180,units="mm")
+# proportion of values above the control threshold
+nrow(control[control$V13>0.0235,])/nrow(control)*100
+= 1.033201
+
+nrow(bz[bz$V13>0.0235,])/nrow(bz)*100
+= 4.210414
+
+nrow(lev[lev$V13>0.0235,])/nrow(lev)*100
+= 11.21552
+
+nrow(ivm[ivm$V13>0.0235,])/nrow(ivm)*100
+= 2.399702
+
+
+
+
+# positions of variants gt fst+3sd
+bz_high <- bz %>% filter(V13 > mean(V13)+3*sd(V13))
+control_bz_high <- dplyr::inner_join(control, bz_high, by = c("V1","V2"))
+#> control_bz_high = 712
+
+# false positives
+control_bz_high_control_high <- control_bz_high %>% filter(V13.x > mean(control$V13)+3*sd(control$V13))
+#> 21 gt control
+
+nrow(control_bz_high_control_high)/nrow(control_bz_high)
+#> 0.02949438
+
+# positions of variants gt fst+3sd
+lev_high <- lev %>% filter(V13 > mean(V13)+3*sd(V13))
+control_lev_high <- dplyr::inner_join(control, lev_high, by = c("V1","V2"))
+nrow(control_lev_high)
+#= 715
+
+# false positives
+control_lev_high_control_high <- control_lev_high %>% filter(V13.x > mean(control$V13)+3*sd(control$V13))
+nrow(control_lev_high_control_high)
+#> 33 gt control
+
+nrow(control_lev_high_control_high)/nrow(control_lev_high)
+#> 0.04615385
+
+# positions of variants gt fst+3sd
+ivm_high <- ivm %>% filter(V13 > mean(V13)+3*sd(V13))
+control_ivm_high <- dplyr::inner_join(control, ivm_high, by = c("V1","V2"))
+nrow(control_ivm_high)
+#= 698
+
+# false positives
+control_ivm_high_control_high <- control_ivm_high %>% filter(V13.x > mean(control$V13)+3*sd(control$V13))
+nrow(control_ivm_high_control_high)
+#> 39 gt control
+
+nrow(control_ivm_high_control_high)/nrow(control_ivm_high)
+#> 0.05587393
+
+
+data2 <- bind_rows(control_bz_high, control_lev_high, control_ivm_high)
+
+
+
+fp_plot <- ggplot(data2,aes(V13.x,1)) +
+     geom_jitter(aes(color = V13.x > mean(control$V13)+3*sd(control$V13)), alpha=0.4)+ xlim(0,0.05) +
+     scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black"))+
+     theme_bw() +
+     labs(title = "B", x="FST", colour="False positive")+
+     facet_grid(id.y~.)
+
+fst_distribution_plot + fp_plot + plot_layout(ncol = 1)
