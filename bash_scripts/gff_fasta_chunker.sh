@@ -14,7 +14,7 @@ samtools faidx ${FASTA}
 
 cut -f1,2 REF.fa.fai > REF.genome
 
-bedtools makewindows -g REF.genome -w ${WINDOW} > REF.${WINDOW}.bed
+bedtools makewindows -g REF.genome -w ${WINDOW} | awk '{print $1,$2+1,$3}' OFS="\t" > REF.${WINDOW}.bed
 
 
 
@@ -29,5 +29,5 @@ while read CHR START END; do
 
 while read CHR START END; do
      echo "##gff-version 3" > ${CHR}_${START}_${END}.gff
-     grep "^${CHR}" ${GFF} | awk -v start=${START} -v end=${END} '{if($4>=start && $4<end) print $1,$2,$3,$4-start,$5-start,$6,$7,$8,$9}' OFS="\t" >> ${CHR}_${START}_${END}.gff;
+     grep "^${CHR}" ${GFF} | awk -v start=${START} -v end=${END} '{if($4>=start && $4<end) print $1,$2,$3,$4-start+1,$5-start+1,$6,$7,$8,$9}' OFS="\t" >> ${CHR}_${START}_${END}.gff;
      done < REF.${WINDOW}.bed
