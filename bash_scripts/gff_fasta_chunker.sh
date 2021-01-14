@@ -13,7 +13,7 @@ WINDOW=$3
 
 # index reference and get chromosome sizes
 samtools faidx ${FASTA}
-cut -f1,2 REF.fa.fai > REF.genome
+cut -f1,2 ${FASTA}.fai > REF.genome
 
 # make bed file of windows
 bedtools makewindows -g REF.genome -w ${WINDOW} | awk '{print $1,$2+1,$3}' OFS="\t" > REF.${WINDOW}.bed
