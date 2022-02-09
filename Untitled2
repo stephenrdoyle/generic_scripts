@@ -1,0 +1,56 @@
+
+
+
+library(tidyverse)
+library(ggrepel)
+library(patchwork)
+library(ggsci)
+
+# load world data
+world_map <- map_data("world")
+
+# load metadata
+data <- read.delim("map_metadata_ancient.txt", sep="\t", header=T)
+
+
+
+
+world <- map_data("world")
+denmark <- map_data("Denmark")
+
+ggplot() +
+  geom_map(data = world, map = world, aes(long, lat, map_id = region), color = "darkgrey", fill = "lightgray", size = 0.1) +
+  geom_point(data = data, aes(x = LONGITUDE, y = LATITUDE, colour = POPULATION, shape = COUNTRY), size=5) +
+  coord_map("ortho", orientation = c(55, 13, 0), xlim=c(0, 27), ylim = c(50.5, 59)) +
+  #theme_void() +
+  scale_colour_npg() +
+  labs(y="Latitude", x="Longitude") +
+  theme(panel.grid.major = element_line(color = gray(.5), linetype = "dashed", size = 0.5), panel.background = element_rect(fill = "aliceblue"))
+
+
+
+
+
+
+# run vcftools weir-fst-pop for all pairwise combinations of populatiions
+for i in AN_DNK_COG.list \
+AN_DNK_COK.list \
+AN_DNK_OBM.list \
+AN_DNK_VIB.list \
+AN_LTU_VIL.list \
+AN_NLD_KAM.list \
+AN_NLD_ZWO.list; do \
+     for j in AN_DNK_COG.list \
+          AN_DNK_COK.list \
+          AN_DNK_OBM.list \
+          AN_DNK_VIB.list \
+          AN_LTU_VIL.list \
+          AN_NLD_KAM.list \
+          AN_NLD_ZWO.list; do \
+          if [[ "$i" == "$j" ]] || [[ -f ${i%.list}_v_${j%.list}.windowed.weir.fst ]] || [[ -f ${j%.list}_v_${i%.list}.windowed.weir.fst ]]; then
+               echo "Same, same, move on"
+               else
+               vcftools --gzvcf Trichuris_trichiura.cohort.mito_variants.final.recode.vcf.gz --weir-fst-pop ${i} --weir-fst-pop ${j} --fst-window-size 20000 --out ${i%.list}_v_${j%.list};
+          fi;
+     done;
+done
