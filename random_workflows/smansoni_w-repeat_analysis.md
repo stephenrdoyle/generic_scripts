@@ -1,5 +1,6 @@
 # Repeat analysis of S. mansoni
 - comparison of repeats from Grevelding paper to V9 assembly
+- trying to reconcile SBs repeats with Greveldings repeats
 
 
 ```bash
