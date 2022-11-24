@@ -64,12 +64,12 @@ library(patchwork)
 
 data <- read.table("WBP17_stats.txt", header=T)
 
-plot1 <- ggplot(data, aes(log10(n50), log10(scaffold_count), col=as.numeric(assembly_busco3_complete), label=paste0(species, " (",scaffold_count,")" ))) +
+plot1 <- ggplot(data, aes(log10(n50), log10(scaffold_count), size=otal_size,  col=as.numeric(assembly_busco3_complete), label=paste0(species, " (",scaffold_count,")" ))) +
      geom_point() +
      scale_colour_viridis(option="plasma", direction=-1, limits=c(0,100)) +
      theme_bw() +
      labs(x="N50 (log10[bp])", y="Scaffold count (log10[n])", size="Genome size (log10[bp])", col="BUSCO: Complete (%)") +
-     geom_text_repel(data=subset(data, scaffold_count <200 ),size=2, box.padding = 0.5, max.overlaps = Inf) +
+     geom_text_repel(data=subset(data, scaffold_count <200 ),size=2.5, box.padding = 0.5, max.overlaps = Inf) +
      scale_x_continuous(expand = expansion(mult = 0.15)) +
      scale_y_reverse() +
      scale_size()
@@ -80,13 +80,16 @@ plot2 <- ggplot(data, aes(log10(n50), log10(scaffold_count), col=as.numeric(anno
      scale_colour_viridis(option="plasma", direction=-1, limits=c(0,100)) +
      theme_bw() +
      labs(x="N50 (log10[bp])", y="Scaffold count (log10[n])", size="Genome size (log10[bp])", col="BUSCO: Complete (%)") +
-     geom_text_repel(data=subset(data, scaffold_count <200 ),size=2, box.padding = 0.5, max.overlaps = Inf) +
+     geom_text_repel(data=subset(data, scaffold_count <200 ),size=2.5, box.padding = 0.5, max.overlaps = Inf) +
      scale_x_continuous(expand = expansion(mult = 0.15)) +
      scale_y_reverse() +
      scale_size()
 
-plot1 + plot2 + plot_layout(ncol=1)
+# plot1 + plot2 + plot_layout(ncol=1)
 
+plot1
+
+ggsave("plot_WBP17_stats.pdf", height=5, width=7)
 ```
 
 
