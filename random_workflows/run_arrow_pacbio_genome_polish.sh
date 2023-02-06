@@ -12,8 +12,9 @@ export PREFIX=tc_ragtag
 export REFERENCE=/nfs/users/nfs_s/sd21/lustre_link/teladorsagia_circumcincta/PLAY/ragtag_output/ragtag.scaffold.fasta
 export PB_READ_DATA_FOFN=/nfs/users/nfs_s/sd21/lustre_link/teladorsagia_circumcincta/GENOME/POLISH/subread_bams.fofn
 
-# load PacBio SMRTtools
+# load required modules
 module load pacbio-smrttools/7.0.1.66768
+module load samtools/1.14--hb421002_0
 
 ## file locations
 export LOG_FILES="$PWD/pb_arrow_polish_${PREFIX}_out/LOG_FILES"
@@ -38,7 +39,7 @@ export SPLIT_POLISHED_FASTAS="$PWD/pb_arrow_polish_${PREFIX}_out/SPLIT_POLISHED_
 
 
 # save current script in run folder to reproduce the exact output
-cp ${PWD}/run_arrow_pacbio_genome_polish.sh ${PWD}/pb_arrow_polish_${PREFIX}_out/commands.txt
+cp ${PWD}/run_arrow_pacbio_genome_polish.sh ${PWD}/pb_arrow_polish_${PREFIX}_out/commands.$(date -Iminutes).txt
 
 # make a progress file
 #> ${PWD}/pb_arrow_polish_${PREFIX}.progress.log
@@ -54,18 +55,23 @@ cp ${PWD}/run_arrow_pacbio_genome_polish.sh ${PWD}/pb_arrow_polish_${PREFIX}_out
 
 func_build_reference() {
 
-cp ${REFERENCE} ${REFERENCE_FILES}/REF.fa
+if [ -f "${REFERENCE_FILES}/REF.fa" ]; then
+        echo "Reference is already setup. Moving on."
+        exit 0
+    else
 
-pbmm2 index ${REFERENCE_FILES}/REF.fa ${REFERENCE_FILES}/REF.mmi
+    cp ${REFERENCE} ${REFERENCE_FILES}/REF.fa
 
-samtools faidx ${REFERENCE_FILES}/REF.fa > ${REFERENCE_FILES}/REF.fa.fai 
+    pbmm2 index ${REFERENCE_FILES}/REF.fa ${REFERENCE_FILES}/REF.mmi
 
-cat ${REFERENCE_FILES}/REF.fa.fai | cut -f1 > ${REFERENCE_FILES}/sequences.list
+    samtools faidx ${REFERENCE_FILES}/REF.fa > ${REFERENCE_FILES}/REF.fa.fai 
 
-while read SEQUENCE; do 
-    echo "samtools faidx ${REFERENCE_FILES}/REF.fa ${SEQUENCE} > ${SPLIT_FASTAS}/${SEQUENCE}.fa";
+    cat ${REFERENCE_FILES}/REF.fa.fai | cut -f1 > ${REFERENCE_FILES}/sequences.list
+
+    while read SEQUENCE; do 
+       echo "samtools faidx ${REFERENCE_FILES}/REF.fa ${SEQUENCE} > ${SPLIT_FASTAS}/${SEQUENCE}.fa";
     done < ${REFERENCE_FILES}/sequences.list | parallel -j20
-
+fi
 }
 
 export -f func_build_reference
@@ -76,14 +82,18 @@ export -f func_build_reference
 ### 02. Map pacbio reads to reference
 #-------------------------------------------------------------------------------
 func_map_reads () {
+    # check if bam file exits - if yes, then exit. Else, run mapping
+    if [ -s "${MAPPING}/REF.bam" ]; then
+            echo "Bam file is already setup. Moving on."
+            exit 0
+        else
 
+        pbmm2 align ${REFERENCE_FILES}/REF.fa ${PB_READ_DATA_FOFN} ${MAPPING}/REF.bam --preset SUBREAD --sort -j 20 -J 20
 
-pbmm2 align ${REFERENCE_FILES}/REF.fa ${PB_READ_DATA_FOFN} ${MAPPING}/REF.bam --preset SUBREAD --sort -j 20 -J 20
+        pbindex ${MAPPING}/REF.bam
 
-pbindex ${MAPPING}/REF.bam
-
-samtools index ${MAPPING}/REF.bam
-
+        samtools index ${MAPPING}/REF.bam
+    fi
 }
 
 export -f func_map_reads
@@ -96,7 +106,7 @@ export -f func_map_reads
 func_split_bams () {
 
 while read SEQUENCE; do 
-    echo "samtools view --bam --reference ${SPLIT_FASTAS}/${SEQUENCE}.fa --output ${SPLIT_BAMS}/${SEQUENCE}.bam ${MAPPING}/REF.bam ${SEQUENCE}"; 
+    echo "samtools view -b --reference ${SPLIT_FASTAS}/${SEQUENCE}.fa -o ${SPLIT_BAMS}/${SEQUENCE}.bam ${MAPPING}/REF.bam ${SEQUENCE}"; 
     done < ${REFERENCE_FILES}/sequences.list  | parallel -j20
 
 while read SEQUENCE; do 
