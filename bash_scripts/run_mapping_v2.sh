@@ -6,10 +6,10 @@
 ### author: Stephen Doyle, stephen.doyle[at]sanger.ac.uk
 
 # Input required
-PREFIX=mapping_hcontortus_qtl
-REF=/lustre/scratch125/pam/teams/team333/sd21/haemonchus_contortus/QTL/01_REFERENCE/HAEM_V4_final.chr.fa
-DATA_DIR=/lustre/scratch125/pam/teams/team333/sd21/haemonchus_contortus/QTL/02_RAW
-LANES_IDS=/lustre/scratch125/pam/teams/team333/sd21/haemonchus_contortus/QTL/lanes_samples.list
+PREFIX=dirofilaria_immitis_popgen
+REF=/nfs/users/nfs_s/sd21/lustre_link/dirofilaria_immitis/dimmitis_WSI_2.0.fa
+DATA_DIR=/nfs/users/nfs_s/sd21/lustre_link/dirofilaria_immitis/POPGEN/DATA
+LANES_IDS=/nfs/users/nfs_s/sd21/lustre_link/dirofilaria_immitis/POPGEN/DATA/lanes_samples.list
 
 THREADS=20
 
@@ -169,6 +169,6 @@ chmod a+x ${MAPPING_JOBS}/map*
 JOBS=$( ls -1 ${MAPPING_JOBS}/map* | wc -l )
 
 #submit job array to call variants put scaffold / contig
-bsub -q normal -R'span[hosts=1] select[mem>10000] rusage[mem=10000]' -n ${THREADS} -M10000 -J "mapping_${PREFIX}_[1-$JOBS]%20" -e "${WORKING_DIR}/mapping_${PREFIX}_[1-$JOBS].e" -o "${WORKING_DIR}/mapping_${PREFIX}_[1-$JOBS].o" "${MAPPING_JOBS}/map_*.job_\$LSB_JOBINDEX"
+bsub -q long -R'span[hosts=1] select[mem>10000] rusage[mem=10000]' -n ${THREADS} -M10000 -J "mapping_${PREFIX}_[1-$JOBS]%20" -e "${WORKING_DIR}/mapping_${PREFIX}_[1-$JOBS].e" -o "${WORKING_DIR}/mapping_${PREFIX}_[1-$JOBS].o" "${MAPPING_JOBS}/map_*.job_\$LSB_JOBINDEX"
 
 

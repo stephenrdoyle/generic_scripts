@@ -10,7 +10,10 @@
 # Export environment variables
 export PREFIX=test  # prefix for output files
 export REFERENCE=/nfs/users/nfs_s/sd21/lustre_link/haemonchus_contortus/QTL/01_REFERENCE/HAEM_V4_final.chr.fa  # path to reference genome
-export BAM_LIST=/nfs/users/nfs_s/sd21/lustre_link/haemonchus_contortus/QTL/bam.list2  # path to list of BAM files
+export BAM_LIST=/nfs/users/nfs_s/sd21/lustre_link/haemonchus_contortus/QTL/MAPPING_mapping_hcontortus_qtl/bams.list  # path to list of BAM files
+
+#### collate bams: find "$(cd ..; pwd)" -name "*bam" | grep -v "unmapped" > bams.list
+
 
 # Load GATK module
 module load gatk/4.1.4.1

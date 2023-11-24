@@ -8,8 +8,8 @@
 # Jan 2023
 
 
-export PREFIX=tc_ragtag
-export REFERENCE=/nfs/users/nfs_s/sd21/lustre_link/teladorsagia_circumcincta/PLAY/ragtag_output/ragtag.scaffold.fasta
+export PREFIX=tc_ASSEMBLY_230308
+export REFERENCE=/nfs/users/nfs_s/sd21/lustre_link/teladorsagia_circumcincta/GENOME/ASSEMBLY/POST_CANU_IMPROVEMENT/PRE_POLISH_COMPLETE/ASSEMBLY_230308.fa
 export PB_READ_DATA_FOFN=/nfs/users/nfs_s/sd21/lustre_link/teladorsagia_circumcincta/GENOME/POLISH/subread_bams.fofn
 
 # load required modules
